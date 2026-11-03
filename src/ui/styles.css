@@ -464,8 +464,18 @@ button:disabled {
 
 .foot {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
   padding: 4px 16px 14px;
+}
+
+.foot .spacer {
+  flex: 1;
+}
+
+.foot .ver {
+  color: var(--muted);
+  font-size: 11px;
 }
 
 .confirm {

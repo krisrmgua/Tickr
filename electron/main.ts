@@ -277,6 +277,7 @@ function buildState() {
   const p = prefs();
   const hasKey = readApiKey() != null;
   return {
+    version: app.getVersion(),
     platform: process.platform,
     pollSeconds: POLL_MS / 1000,
     lastUpdated,
