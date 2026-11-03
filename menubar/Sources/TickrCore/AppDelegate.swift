@@ -54,8 +54,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     }
 
     private static func dayColor(for change: Double) -> NSColor {
-        if change > 0 { return .systemGreen }
-        if change < 0 { return .systemRed }
+        if change > 0 {
+            return TickrPrefs.pastelBarColors ? TickrPalette.green : .systemGreen
+        }
+        if change < 0 {
+            return TickrPrefs.pastelBarColors ? TickrPalette.red : .systemRed
+        }
         return .white
     }
 
@@ -407,6 +411,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         stackItem.state = TickrPrefs.stackTwoTickers ? .on : .off
         menu.addItem(stackItem)
 
+        let pastelItem = NSMenuItem(
+            title: "Pastel menu-bar colors",
+            action: #selector(togglePastelClicked),
+            keyEquivalent: "")
+        pastelItem.target = self
+        pastelItem.state = TickrPrefs.pastelBarColors ? .on : .off
+        menu.addItem(pastelItem)
+
         let scrollItem = NSMenuItem(
             title: "Scroll tickers",
             action: #selector(toggleScrollClicked),
@@ -733,6 +745,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         TickrPrefs.stackTwoTickers.toggle()
         rotateIndex = 0
         scheduleRotateTimer()
+        render()
+    }
+
+    @objc private func togglePastelClicked() {
+        TickrPrefs.pastelBarColors.toggle()
         render()
     }
 

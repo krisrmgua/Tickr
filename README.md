@@ -32,6 +32,8 @@ ln -sfn "$(pwd)/tickr" ~/bin/tickr
 
 Each symbol is a logo plus `$price` on a dark rounded backdrop. The logo ships in the app for `SOFI`. Other logos are cached under `~/Library/Application Support/Tickr/logos/` after a download from Financial Modeling Prep’s public symbol images. A missing logo falls back to a letter tile.
 
+**Pastel menu-bar colors** (on by default) uses soft green and red for up/down days, same idea as TokenPulse. Turn it off for the saturated system colors.
+
 The bar polls Yahoo every 60 seconds. A failed refresh keeps the last good quote and shows the error in orange in the menu.
 
 Three display modes, set from the menu:
@@ -66,7 +68,7 @@ Until both are set, the Futures and Options sections stay hidden. A failed reque
 | Item | Where |
 |---|---|
 | Watchlist (`trackedSymbols`) | UserDefaults, domain `com.krsimmons.tickr`. Empty falls back to `SOFI`. |
-| Rotate, stack, and scroll settings | Same domain. |
+| Rotate, stack, scroll, and pastel settings | Same domain. |
 | Dashboard address and Live/Paper | `dailystockerBaseURL` and `dailystockerMode` in that domain. |
 | API key | `~/Library/Application Support/Tickr/positions-api-key`, mode `600`. An older key in the Keychain (`com.krsimmons.tickr.positions`, account `api`) is copied into that file once and then removed. |
 

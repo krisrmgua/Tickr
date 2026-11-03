@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 /// Menu-bar display options. Stack and scroll are mutually exclusive; rotate
@@ -10,6 +11,7 @@ enum TickrPrefs {
     private static let scrollWidthKey = "scrollWidthPoints"
     private static let scrollSpeedKey = "scrollSpeedPointsPerSecond"
     private static let scrollDirectionKey = "scrollDirection"
+    private static let pastelKey = "pastelBarColors"
 
     static let rotateIntervalChoices = [3, 5, 10, 15, 30, 60]
     static let scrollWidthChoices = [100, 140, 180, 220, 280]
@@ -98,6 +100,12 @@ enum TickrPrefs {
         set { UserDefaults.standard.set(newValue.rawValue, forKey: scrollDirectionKey) }
     }
 
+    /// Soft green/red in the menu bar (TokenPulse-style). On by default.
+    static var pastelBarColors: Bool {
+        get { UserDefaults.standard.object(forKey: pastelKey) as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: pastelKey) }
+    }
+
     static func rotateIntervalLabel(_ seconds: Int) -> String {
         seconds == 1 ? "1 second" : "\(seconds) seconds"
     }
@@ -115,6 +123,12 @@ enum TickrPrefs {
         default: return "\(pointsPerSecond) pt/s"
         }
     }
+}
+
+/// Fixed sRGB pastels matching TokenPulse, so they never shift with appearance.
+enum TickrPalette {
+    static let green = NSColor(srgbRed: 0.78, green: 0.96, blue: 0.78, alpha: 1)
+    static let red = NSColor(srgbRed: 1.00, green: 0.76, blue: 0.75, alpha: 1)
 }
 
 enum Watchlist {
