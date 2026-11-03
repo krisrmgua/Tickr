@@ -1,99 +1,201 @@
 # Tickr
 
-Tickr is a macOS menu-bar ticker. It shows a live price for each symbol on your watchlist, in green when the price is up for the day and red when it is down. Click the icon for the list, a small intraday chart, and optional futures and options from a dashboard you configure.
+Tickr is a stock ticker for the **macOS menu bar** and the **Windows system tray**. It shows a live price for each symbol on your watchlist, in green when the price is up for the day and red when it is down. Click the icon for a dark panel with the watchlist, a small intraday chart per symbol, and optional futures and options from a dashboard you configure.
 
-Requires **macOS 13** or later and the Swift command-line tools. Quotes come from Yahoo Finance’s public chart API. No Yahoo key is required.
+Quotes come from Yahoo Finance’s public chart API. No Yahoo key is required.
 
-## Install
+Tickr is an Electron + TypeScript app at the repo root. The original Swift menu-bar app is still in [`menubar/`](menubar/) for reference; it is no longer the install path.
+
+---
+
+## Requirements
+
+### Both platforms
+
+- [Node.js](https://nodejs.org/) **20 or newer** (includes `npm`), to build from source
+- Git, to clone
+
+### macOS
+
+- macOS **13** (Ventura) or later, Apple Silicon or Intel (the build targets the machine you run it on)
+
+### Windows
+
+- Windows **10** or **11**
+- PowerShell 5+ (built in) to run the install script
+- Permission to run a locally built, unsigned NSIS installer (SmartScreen may warn on first run)
+
+---
+
+## Install on macOS
 
 ```bash
 git clone https://github.com/krisrmgua/Tickr.git
-cd Tickr/menubar
-./install.sh
+cd Tickr
+./scripts/install.sh
 ```
 
-That builds `Tickr.app`, copies it to `~/Applications/Tickr.app`, and starts it at login. Run `./install.sh` again to update. The bundle id is `com.krsimmons.tickr`, so an update keeps the watchlist and display settings you already set.
+`install.sh`:
 
-A manual build, without installing, is:
+1. Runs `npm install` and `npm run pack:mac` (electron-builder, output under `release/`)
+2. Quits a running Tickr (Swift or Electron) and replaces `~/Applications/Tickr.app`
+3. Ad-hoc signs the bundle and clears the quarantine flag
+4. Links `~/bin/tickr` to the repo’s `tickr` control script
+5. Launches Tickr
+
+The first build downloads Electron (~100 MB) and can take a few minutes. Run `./scripts/install.sh` again to update. The bundle id is still `com.krsimmons.tickr`.
+
+On the first launch of a packaged build, Tickr turns on **Open at login** (Settings tab). If you already have the Swift-era LaunchAgent from `tickr enable`, Tickr leaves login alone, because that agent now launches the Electron app at the same path.
+
+### macOS control script
+
+`tickr` at the repo root (linked to `~/bin/tickr` by the installer):
 
 ```bash
-cd menubar
-./make-app.sh
-open Tickr.app
+tickr status    # running, LaunchAgent, autostart
+tickr start     # start the app if it is not running
+tickr stop      # quit the running app
+tickr enable    # start at login through a LaunchAgent
+tickr disable   # stop starting at login (leaves the app running)
+tickr install   # same as ./scripts/install.sh
 ```
 
-From the repo root, `./tickr` is the same control script: `status`, `install`, `enable`, `disable`, `start`, and `stop`. You can symlink it onto your PATH:
+Put `~/bin` on your PATH once if `tickr` is not found:
 
 ```bash
-ln -sfn "$(pwd)/tickr" ~/bin/tickr
+echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zprofile
 ```
 
-## Menu bar
+### Gatekeeper
 
-Each symbol is a logo plus `$price` on a dark rounded backdrop. The logo ships in the app for `SOFI`. Other logos are cached under `~/Library/Application Support/Tickr/logos/` after a download from Financial Modeling Prep’s public symbol images. A missing logo falls back to a letter tile.
+This is a local build, not notarized. If macOS blocks it, use System Settings → Privacy & Security → allow Tickr, or right-click `Tickr.app` → Open.
 
-**Pastel menu-bar colors** (on by default) uses soft green and red for up/down days, same idea as TokenPulse. Turn it off for the saturated system colors.
+---
 
-The bar polls Yahoo every 60 seconds. A failed refresh keeps the last good quote and shows the error in orange in the menu.
+## Install on Windows
 
-Three display modes, set from the menu:
+In PowerShell:
 
-- **Rotate one at a time** (off). Shows one symbol and cycles the watchlist. **Rotate every** is 3, 5, 10, 15, 30, or 60 seconds. The default is 5. Rotation starts once you have at least two symbols.
-- **Stack two tickers** (off). Draws logo and price in two-high columns, left to right. A third and fourth symbol add another column. Turn rotate on with stack to keep a single column and page through pairs. Stack turns scroll off.
-- **Scroll tickers** (off). Keeps a fixed width and marquee-scrolls every logo and price. Scroll turns rotate and stack off.
-  - **Scroll width:** 100, 140, 180, 220, or 280 points. The default is 180.
-  - **Scroll speed:** Crawl, Very slow, Slow, Medium, Fast, Very fast. The default is Medium.
-  - **Scroll direction:** Right to left (default) or Left to right.
+```powershell
+git clone https://github.com/krisrmgua/Tickr.git
+cd Tickr
+.\scripts\install.ps1
+```
 
-## Dropdown
+If PowerShell blocks scripts:
 
-**Stocks** lists each symbol as its logo and name. Hover a row for Price, Change, Prev, As of, and a sparkline of the day’s 5-minute bars with a dashed previous-close line. **Remove** is on that submenu. The last symbol cannot be removed.
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+.\scripts\install.ps1
+```
 
-**Add Stock…** asks for a ticker, checks it against Yahoo, and appends it. Tickers are uppercased. Letters, digits, `.`, `-`, and `^` are kept.
+`install.ps1` runs `npm install` and `npm run pack:win`, closes a running Tickr, and launches the NSIS setup `.exe` from `release\`. Pick an install folder in the wizard and finish.
 
-**Refresh** fetches quotes and positions now. **Quit Tickr** leaves the login agent in place until you disable it.
+Tickr appears in the **system tray** near the clock. Windows often hides new tray icons: click the **^** overflow arrow and drag Tickr onto the taskbar.
 
-## Futures and options
+On first run of the setup `.exe`, SmartScreen may say “Windows protected your PC” because it is not signed with a purchased certificate. Choose **More info** → **Run anyway** if you built it yourself.
 
-The menu can also show open futures and options from a dashboard that serves `GET /api/positions/summary.json`. Futures are grouped by root (MES, ES, and so on). Options are grouped by underlying. Each group shows open P&L. Hover a group for quantity, average, mark, unrealized P&L, and day P&L.
+To update, `git pull` and run `.\scripts\install.ps1` again. To uninstall, use **Settings → Apps → Tickr → Uninstall**. Settings under `%APPDATA%\Tickr` are left in place.
 
-**Dailystocker Settings…** asks for the dashboard address and the API key. The address has to be `https`. The key is sent as the `X-Api-Key` header. Leave the key blank to keep the one already stored.
+---
 
-Until both are set, the Futures and Options sections stay hidden. A failed request shows an orange row and keeps the last good numbers. The dashboard’s own `stale` flag marks an old snapshot.
+## Tray
 
-**Mode: Live** is the default. **Mode: Paper** switches the `mode` query. Live is green and Paper is orange. The same key covers both.
+The tray polls Yahoo every 60 seconds. A failed refresh keeps the last good quote and shows the error in orange in the panel.
+
+**macOS** shows the symbol’s logo as the tray image and the price as the title text next to it, for example `$14.15  AAPL $230.10`. When the first symbol has a logo, its ticker text is dropped, as in the Swift app. The title is green or red for the day (**Color the menu-bar price**, on by default). Hover for a tooltip with every symbol’s price and change.
+
+**Windows** trays only draw an icon. Tickr shows the current symbol’s logo, or a green / red / grey dot when there is no logo. The tooltip lists every symbol with price and change, and the panel holds the full view.
+
+The `SOFI` logo ships with the app. Other logos are downloaded once from Financial Modeling Prep’s public symbol images and cached in the app data folder. A missing logo falls back to a dot in the tray and a letter tile in the panel.
+
+Right-click the tray icon for **Open Tickr**, **Refresh**, and **Quit Tickr**.
+
+### Display modes
+
+Set from the panel’s **Settings** tab:
+
+| Mode | Default | macOS | Windows |
+|---|---|---|---|
+| **Rotate one at a time** | off | Title shows one symbol and cycles the watchlist | Tray logo / dot cycles; tooltip lists all |
+| **Rotate every** | 5 s | 3, 5, 10, 15, 30, or 60 seconds | Same |
+| **Stack two tickers** | off | Two tickers side by side; with rotate, pages through pairs | Hidden |
+| **Scroll tickers** | off | Fixed-width marquee in the title. Width 100–280 pt, speed Crawl to Very fast, direction either way | Hidden |
+| **Pastel colors** | on | Soft green / red in the panel and tray dot | Same |
+
+Rotation starts once you have at least two symbols (three with stack). Scroll turns rotate and stack off; rotate or stack turns scroll off.
+
+---
+
+## Panel
+
+Click the tray icon to open the dark panel. Click outside it, or press Escape, to hide it.
+
+- **Stocks** lists each symbol with logo, name, price, and change. Click a row for a sparkline of the day’s 5-minute bars with a dashed previous-close line, plus Price, Change, Prev, and As of. **Remove** is in the expanded row. The last symbol cannot be removed.
+- The add box at the top checks a ticker against Yahoo and appends it. Tickers are uppercased. Letters, digits, `.`, `-`, and `^` are kept.
+- **Positions** appears once Dailystocker is configured (below).
+- **Settings** holds the display modes, **Open at login**, and Dailystocker.
+- **Refresh** fetches quotes and positions now. **Quit Tickr** exits the app.
+
+---
+
+## Futures and options (Dailystocker)
+
+Tickr can show open futures and options from a dashboard that serves `GET /api/positions/summary.json`. Futures are grouped by root (MES, ES, and so on). Options are grouped by underlying. Each group shows open P&L. Click a group for quantity, average, unrealized P&L, and day P&L per contract.
+
+In **Settings → Dailystocker**, enter the dashboard address and the API key. The address has to be `https`. The key is sent as the `X-Api-Key` header. Leave the key blank to keep the one already stored. Clear the address and save to hide positions.
+
+Until both are set, the **Positions** tab stays hidden. A failed request shows an orange row and keeps the last good numbers. The dashboard’s own `stale` flag marks an old snapshot.
+
+**Mode: Live** is the default. **Switch to Paper** changes the `mode` query. Live is green and Paper is orange. The same key covers both.
+
+---
 
 ## What is stored
 
-| Item | Where |
-|---|---|
-| Watchlist (`trackedSymbols`) | UserDefaults, domain `com.krsimmons.tickr`. Empty falls back to `SOFI`. |
-| Rotate, stack, scroll, and pastel settings | Same domain. |
-| Dashboard address and Live/Paper | `dailystockerBaseURL` and `dailystockerMode` in that domain. |
-| API key | `~/Library/Application Support/Tickr/positions-api-key`, mode `600`. An older key in the Keychain (`com.krsimmons.tickr.positions`, account `api`) is copied into that file once and then removed. |
+| Item | macOS | Windows |
+|---|---|---|
+| App data folder | `~/Library/Application Support/Tickr/` | `%APPDATA%\Tickr\` |
+| Watchlist and display settings | `prefs.json` in that folder | Same |
+| API key | `positions-api-key` in that folder, mode `600` | Same file, protected by your user profile’s ACL |
+| Logo cache | `logos/` in that folder | Same |
 
-The app does not store a Yahoo password. It is not sandboxed. It is an accessory app (`LSUIElement`), so it has no Dock icon.
+`prefs.json` uses the Swift app’s key names: `trackedSymbols` (empty falls back to `SOFI`), `rotateOneAtATime`, `rotateIntervalSeconds`, `stackTwoTickers`, `scrollTickers`, `scrollWidthPoints`, `scrollSpeedPointsPerSecond`, `scrollDirection`, `pastelBarColors`, `dailystockerBaseURL`, `dailystockerMode`, plus `colorTrayTitle`.
+
+On macOS, the first launch copies those settings from the Swift app’s UserDefaults domain (`com.krsimmons.tickr`). The Swift app kept its API key and logo cache in the same Application Support folder, so they carry over as is.
+
+Tickr does not store a Yahoo password. On macOS it is an accessory app (`LSUIElement`), so it has no Dock icon.
+
+---
 
 ## Develop
 
 ```bash
-cd menubar
-swift build -c release
-.build/release/Tickr --self-check
+npm install
+npm run dev
 ```
 
-`--self-check` parses a fixture quote and a fixture positions summary. It does not call Yahoo or a dashboard.
+`npm run dev` compiles the Electron main process, starts the Vite UI on `http://127.0.0.1:5174`, and launches Electron with `TICKR_DEV=1` (the panel does not hide on blur).
 
-`swift test` needs a full Xcode install. Command Line Tools can build the package and run `--self-check`.
+| Script | Purpose |
+|---|---|
+| `npm run build` | Production UI + Electron compile |
+| `npm run check` | Offline parse and logic checks (quotes, positions, prefs, tray text). No network. |
+| `npm start` | Build, then run Electron against `dist/` |
+| `npm run pack:mac` | macOS `.app` + zip under `release/` |
+| `npm run pack:win` | Windows NSIS installer under `release/` |
+| `npm run pack` | Both (needs a toolchain that can build both) |
 
 ## Layout
 
 | Path | What |
 |---|---|
-| `menubar/` | Swift Package Manager app |
-| `menubar/install.sh` | Build, install to `~/Applications`, and login start |
-| `menubar/Resources/logos/` | Logos shipped with the app |
-| `tickr` | Status, install, start, stop, and login control |
+| `electron/` | Main process: tray, panel window, polling, IPC, prefs and key storage |
+| `electron/core/` | Pure logic with no Electron imports: Yahoo and Dailystocker parsing, prefs, tray text, view models |
+| `src/ui/` | Panel HTML, CSS, and TypeScript |
+| `scripts/` | `install.sh` (macOS) and `install.ps1` (Windows) |
+| `tickr` | macOS status, install, start, stop, and login control |
+| `menubar/` | The original Swift Package Manager app, kept for reference |
 
 ## License
 
