@@ -66,6 +66,7 @@ interface State {
   };
   dailystocker: { baseURL: string; mode: "live" | "paper"; hasKey: boolean; configured: boolean };
   positionSections: SectionView[];
+  positionsLoaded: boolean;
   positionsError: string | null;
   openAtLogin: boolean;
 }
@@ -240,7 +241,9 @@ function renderPositions(s: State): void {
   ];
   if (s.positionsError) parts.push(`<div class="warn">${escapeHtml(s.positionsError)}</div>`);
   if (!s.positionSections.length && !s.positionsError) {
-    parts.push(`<div class="empty">Loading positions…</div>`);
+    parts.push(
+      `<div class="empty">${s.positionsLoaded ? "Futures and options are both off on the dashboard." : "Loading positions…"}</div>`,
+    );
   }
   for (const section of s.positionSections) {
     parts.push(`<div class="section-head">
