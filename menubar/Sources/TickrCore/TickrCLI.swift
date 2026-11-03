@@ -87,6 +87,17 @@ enum TickrSelfChecks {
         check("stack turns scroll off", TickrPrefs.stackTwoTickers && !TickrPrefs.scrollTickers)
         TickrPrefs.scrollTickers = true
         check("scroll turns stack off", TickrPrefs.scrollTickers && !TickrPrefs.stackTwoTickers)
+        let previousPastel = UserDefaults.standard.object(forKey: "pastelBarColors")
+        UserDefaults.standard.removeObject(forKey: "pastelBarColors")
+        check("pastel defaults on", TickrPrefs.pastelBarColors)
+        TickrPrefs.pastelBarColors = false
+        check("pastel can turn off", !TickrPrefs.pastelBarColors)
+        if let previousPastel { UserDefaults.standard.set(previousPastel, forKey: "pastelBarColors") }
+        else { UserDefaults.standard.removeObject(forKey: "pastelBarColors") }
+        check("pastel green is soft",
+              TickrPalette.green.greenComponent > TickrPalette.green.redComponent)
+        check("pastel red is soft",
+              TickrPalette.red.redComponent > TickrPalette.red.greenComponent)
         if let previousStack { UserDefaults.standard.set(previousStack, forKey: "stackTwoTickers") }
         else { UserDefaults.standard.removeObject(forKey: "stackTwoTickers") }
         if let previousScroll { UserDefaults.standard.set(previousScroll, forKey: "scrollTickers") }

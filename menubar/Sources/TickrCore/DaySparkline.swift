@@ -53,7 +53,13 @@ enum DaySparkline {
             let p = NSPoint(x: x, y: y(for: price, lo: lo, hi: hi, in: plot))
             if i == 0 { line.move(to: p) } else { line.line(to: p) }
         }
-        (upDay ? NSColor.systemGreen : NSColor.systemRed).setStroke()
+        let stroke: NSColor
+        if TickrPrefs.pastelBarColors {
+            stroke = upDay ? TickrPalette.green : TickrPalette.red
+        } else {
+            stroke = upDay ? .systemGreen : .systemRed
+        }
+        stroke.setStroke()
         line.stroke()
 
         return img
