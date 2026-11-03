@@ -4,5 +4,5 @@
 
 ## Test plan
 
-- [ ] `swift build -c release` from `menubar/`, then `.build/release/Tickr --self-check`
+- [ ] `npm run build` and `npm run check` from the repo root
 - [ ]
