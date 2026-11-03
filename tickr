@@ -1,0 +1,212 @@
+#!/usr/bin/env bash
+# tickr
+#
+# Control the Tickr menu-bar app: login autostart, run status, start/stop.
+#
+# Usage:
+#   tickr              # status (running + autostart)
+#   tickr status
+#   tickr enable       # start at login
+#   tickr disable      # do not start at login (leaves app running)
+#   tickr start        # start the app if it is not running
+#   tickr stop         # quit the running app (does not change autostart)
+#   tickr install      # build, copy to ~/Applications, enable + start
+
+set -euo pipefail
+
+LABEL="com.krsimmons.tickr"
+APP="${HOME}/Applications/Tickr.app"
+BIN="${APP}/Contents/MacOS/Tickr"
+PLIST="${HOME}/Library/LaunchAgents/${LABEL}.plist"
+UID_N="$(id -u)"
+DOMAIN="gui/${UID_N}"
+SERVICE="${DOMAIN}/${LABEL}"
+
+_SOURCE="${BASH_SOURCE[0]}"
+while [[ -L "$_SOURCE" ]]; do
+  _DIR="$(cd -P "$(dirname "$_SOURCE")" && pwd)"
+  _SOURCE="$(readlink "$_SOURCE")"
+  [[ $_SOURCE != /* ]] && _SOURCE="${_DIR}/${_SOURCE}"
+done
+ROOT="$(cd "$(dirname "$_SOURCE")" && pwd)"
+SRC="${ROOT}/menubar"
+
+usage() {
+  sed -n '2,14p' "$0" | sed 's/^# \?//'
+}
+
+is_running() {
+  pgrep -f "Tickr.app/Contents/MacOS/Tickr" >/dev/null 2>&1
+}
+
+pid() {
+  pgrep -f "Tickr.app/Contents/MacOS/Tickr" | head -1
+}
+
+agent_loaded() {
+  launchctl print "$SERVICE" >/dev/null 2>&1
+}
+
+autostart_disabled() {
+  launchctl print-disabled "$DOMAIN" 2>/dev/null | grep -q "\"${LABEL}\" => disabled"
+}
+
+require_app() {
+  if [[ ! -x "$BIN" ]]; then
+    echo "FAIL: Tickr binary not found at ${BIN}" >&2
+    echo "Build/install first:" >&2
+    echo "  tickr install" >&2
+    exit 1
+  fi
+}
+
+cmd_status() {
+  if is_running; then
+    echo "running: yes (pid $(pid))"
+  else
+    echo "running: no"
+  fi
+
+  if [[ -f "$PLIST" ]]; then
+    echo "plist:   ${PLIST}"
+  else
+    echo "plist:   missing"
+  fi
+
+  if autostart_disabled; then
+    echo "autostart: disabled"
+  elif [[ -f "$PLIST" ]]; then
+    echo "autostart: enabled"
+  else
+    echo "autostart: disabled (no LaunchAgent)"
+  fi
+
+  if agent_loaded; then
+    echo "agent:   loaded (${SERVICE})"
+  else
+    echo "agent:   not loaded"
+  fi
+}
+
+cmd_install() {
+  if [[ ! -x "${SRC}/install.sh" ]]; then
+    echo "FAIL: source not found at ${SRC}" >&2
+    exit 1
+  fi
+  bash "${SRC}/install.sh"
+}
+
+write_plist() {
+  mkdir -p "${HOME}/Library/LaunchAgents" "${HOME}/Library/Logs"
+  cat > "$PLIST" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>${LABEL}</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>${BIN}</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>${HOME}/Applications</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <false/>
+    <key>LimitLoadToSessionType</key>
+    <string>Aqua</string>
+    <key>ProcessType</key>
+    <string>Interactive</string>
+    <key>StandardOutPath</key>
+    <string>${HOME}/Library/Logs/tickr.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>${HOME}/Library/Logs/tickr.err.log</string>
+</dict>
+</plist>
+EOF
+}
+
+cmd_enable() {
+  require_app
+  write_plist
+  launchctl enable "$SERVICE" 2>/dev/null || true
+  if ! agent_loaded; then
+    launchctl bootstrap "$DOMAIN" "$PLIST"
+  fi
+  echo "autostart enabled (${PLIST})"
+  cmd_status
+}
+
+cmd_disable() {
+  launchctl disable "$SERVICE" 2>/dev/null || true
+  echo "autostart disabled (will not launch at next login)"
+  if is_running; then
+    echo "app is still running (pid $(pid)); use 'tickr stop' to quit it"
+  fi
+  cmd_status
+}
+
+cmd_start() {
+  require_app
+  if is_running; then
+    echo "already running (pid $(pid))"
+    return 0
+  fi
+
+  if [[ -f "$PLIST" ]] && ! autostart_disabled; then
+    if agent_loaded; then
+      launchctl kickstart -k "$SERVICE"
+    else
+      launchctl bootstrap "$DOMAIN" "$PLIST"
+    fi
+  else
+    open "$APP"
+  fi
+
+  sleep 1
+  if is_running; then
+    echo "started (pid $(pid))"
+  else
+    echo "FAIL: launch attempted but process not found" >&2
+    exit 1
+  fi
+}
+
+cmd_stop() {
+  if ! is_running; then
+    echo "not running"
+    return 0
+  fi
+  local old
+  old="$(pid)"
+  if agent_loaded; then
+    launchctl bootout "$SERVICE" 2>/dev/null || true
+  fi
+  if is_running; then
+    pkill -f "Tickr.app/Contents/MacOS/Tickr" || true
+  fi
+  sleep 1
+  if is_running; then
+    echo "FAIL: still running (pid $(pid))" >&2
+    exit 1
+  fi
+  echo "stopped (was pid ${old})"
+}
+
+CMD="${1:-status}"
+case "$CMD" in
+  status)  cmd_status ;;
+  install) cmd_install ;;
+  enable)  cmd_enable ;;
+  disable) cmd_disable ;;
+  start)   cmd_start ;;
+  stop)    cmd_stop ;;
+  -h|--help|help) usage ;;
+  *)
+    echo "unknown command: $CMD" >&2
+    usage >&2
+    exit 2
+    ;;
+esac

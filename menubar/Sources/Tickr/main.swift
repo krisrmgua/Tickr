@@ -1,0 +1,3 @@
+import TickrCore
+
+TickrCLI.run()

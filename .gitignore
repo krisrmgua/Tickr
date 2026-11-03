@@ -1,0 +1,6 @@
+# Swift / SwiftPM
+menubar/.build/
+menubar/Tickr.app/
+.swiftpm/
+
+.DS_Store
