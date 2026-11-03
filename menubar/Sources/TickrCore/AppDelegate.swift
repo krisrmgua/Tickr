@@ -195,24 +195,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             var originX = padX
             for (c, column) in columns.enumerated() {
                 for (r, entry) in column.enumerated() {
-                    let y = padY + CGFloat(r) * rowHeight
+                    let rowTop = padY + CGFloat(r) * rowHeight
                     var x = originX
+                    // Center logo and price in the same row band so digits are not
+                    // baseline-shifted below the icon.
+                    func drawCentered(_ text: String, atX textX: CGFloat, color: NSColor) {
+                        let attrs: [NSAttributedString.Key: Any] = [
+                            .font: font, .foregroundColor: color
+                        ]
+                        let size = (text as NSString).size(withAttributes: attrs)
+                        let textY = rowTop + (rowHeight - size.height) / 2
+                        (text as NSString).draw(at: NSPoint(x: textX, y: textY), withAttributes: attrs)
+                    }
                     if let logo = SymbolLogo.image(for: entry.symbol, pointSize: logoSize) {
+                        let logoY = rowTop + (rowHeight - logoSize) / 2
                         logo.draw(
-                            in: NSRect(x: x, y: y + 0.25, width: logoSize, height: logoSize),
+                            in: NSRect(x: x, y: logoY, width: logoSize, height: logoSize),
                             from: .zero, operation: .sourceOver, fraction: 1,
                             respectFlipped: true, hints: nil)
                         x += logoSize + 3
                     } else {
-                        (entry.symbol as NSString).draw(
-                            at: NSPoint(x: x, y: y),
-                            withAttributes: [.font: font, .foregroundColor: entry.color])
+                        drawCentered(entry.symbol, atX: x, color: entry.color)
                         x += ceil((entry.symbol as NSString)
                             .size(withAttributes: [.font: font]).width) + 3
                     }
-                    (entry.priceText as NSString).draw(
-                        at: NSPoint(x: x, y: y),
-                        withAttributes: [.font: font, .foregroundColor: entry.color])
+                    drawCentered(entry.priceText, atX: x, color: entry.color)
                 }
                 originX += columnWidths[c] + columnGap
             }
