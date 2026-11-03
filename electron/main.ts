@@ -299,6 +299,7 @@ function buildState() {
       configured: Boolean(p.dailystockerBaseURL) && hasKey,
     },
     positionSections: positionSections(positions),
+    positionsLoaded: positions != null,
     positionsError,
     openAtLogin: app.getLoginItemSettings().openAtLogin,
   };
