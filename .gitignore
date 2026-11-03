@@ -3,4 +3,11 @@ menubar/.build/
 menubar/Tickr.app/
 .swiftpm/
 
+# Electron / Node
+node_modules/
+dist/
+dist-electron/
+release/
+*.log
+
 .DS_Store
