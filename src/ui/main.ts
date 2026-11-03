@@ -52,6 +52,7 @@ interface Prefs {
 }
 
 interface State {
+  version: string;
   platform: string;
   pollSeconds: number;
   lastUpdated: number | null;
@@ -335,6 +336,7 @@ function render(): void {
   if (!state) return;
   document.body.classList.toggle("pastel", state.prefs.pastelBarColors);
   document.body.classList.toggle("win", state.platform !== "darwin");
+  $("app-version").textContent = `v${state.version}`;
   renderStatus(state);
   renderStocks(state);
   renderPositions(state);
