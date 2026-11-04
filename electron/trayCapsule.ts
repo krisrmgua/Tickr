@@ -17,11 +17,12 @@ const ROW_FONT =
   '500 12px ".AppleSystemUIFontMonospacedDigit", "SF Pro Text", Menlo, monospace';
 const ROW_GAP = 10;
 
-/** Match TokenPulse stacked chrome (28pt) so neighbors share a visual scale. */
-const STACK_HEIGHT = 28;
+/** Two price rows with a gap so the logos are not sitting on each other. */
+const STACK_HEIGHT = 34;
 const STACK_PAD_X = 7;
-const STACK_PAD_Y = 2;
+const STACK_PAD_Y = 3;
 const STACK_ROW = 12;
+const STACK_ROW_GAP = 4;
 const STACK_LOGO = 12;
 const STACK_GAP = 10;
 const STACK_FONT =
@@ -204,7 +205,7 @@ async function paintStack(
   for (let c = 0; c < columns.length; c++) {
     for (let r = 0; r < columns[c].length; r++) {
       const e = columns[c][r];
-      const rowTop = STACK_PAD_Y + r * STACK_ROW;
+      const rowTop = STACK_PAD_Y + r * (STACK_ROW + STACK_ROW_GAP);
       let x = originX;
       const colorInk = ink(e.direction, pastel, color);
       const img = await logo(e.symbol);
