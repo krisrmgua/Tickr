@@ -14,23 +14,6 @@ interface StockView {
   previousClose: number;
 }
 
-interface GroupView {
-  root: string;
-  totalText: string;
-  direction: Direction;
-  summary: string;
-  contracts: { line: string; direction: Direction }[];
-}
-
-interface SectionView {
-  title: string;
-  totalText: string;
-  direction: Direction;
-  warning: string | null;
-  emptyText: string | null;
-  groups: GroupView[];
-}
-
 interface Choice<T = number> {
   value: T;
   label: string;
@@ -48,8 +31,6 @@ interface Prefs {
   pastelBarColors: boolean;
   colorTrayTitle: boolean;
   showTickerSymbol: boolean;
-  dailystockerBaseURL: string;
-  dailystockerMode: "live" | "paper";
 }
 
 interface State {
@@ -66,10 +47,6 @@ interface State {
     scrollSpeed: Choice[];
     scrollDirection: Choice<string>[];
   };
-  dailystocker: { baseURL: string; mode: "live" | "paper"; hasKey: boolean; configured: boolean };
-  positionSections: SectionView[];
-  positionsLoaded: boolean;
-  positionsError: string | null;
   openAtLogin: boolean;
 }
 
@@ -82,8 +59,6 @@ declare global {
       openNews: (symbol: string) => Promise<{ ok: true } | { error: string }>;
       refresh: () => Promise<void>;
       setPrefs: (patch: Partial<Prefs>) => Promise<void>;
-      saveDailystocker: (input: { baseURL: string; apiKey: string }) => Promise<{ ok: true } | { error: string }>;
-      setMode: (mode: "live" | "paper") => Promise<void>;
       setOpenAtLogin: (value: boolean) => Promise<void>;
       onChanged: (cb: () => void) => () => void;
       hide: () => Promise<void>;
@@ -94,24 +69,17 @@ declare global {
 }
 
 let state: State | null = null;
-/** Symbols / position roots the user has expanded; rows start collapsed. */
+/** Symbols the user has expanded; rows start collapsed. */
 const expanded = new Set<string>();
-let dsFormLoaded = false;
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 const statusLine = $("status-line");
 const stockList = $("stock-list");
 const stockError = $("stock-error");
-const positionsView = $("view-positions");
-const positionsTab = $("tab-positions");
 const addForm = $<HTMLFormElement>("add-form");
 const addInput = $<HTMLInputElement>("add-input");
 const addHint = $("add-hint");
-const dsForm = $<HTMLFormElement>("ds-form");
-const dsUrl = $<HTMLInputElement>("ds-url");
-const dsKey = $<HTMLInputElement>("ds-key");
-const dsHint = $("ds-hint");
 
 function escapeHtml(s: string): string {
   return s
@@ -235,65 +203,6 @@ function renderStocks(s: State): void {
   });
 }
 
-function renderPositions(s: State): void {
-  positionsTab.classList.toggle("hidden", !s.dailystocker.configured);
-  if (!s.dailystocker.configured) {
-    if (positionsTab.classList.contains("active")) selectTab("stocks");
-    positionsView.innerHTML = "";
-    return;
-  }
-  const paper = s.dailystocker.mode === "paper";
-  const parts: string[] = [
-    `<div class="mode-row">
-      <span>Mode: <strong class="${paper ? "mode-paper" : "mode-live"}">${paper ? "Paper" : "Live"}</strong></span>
-      <button type="button" class="ghost" id="btn-mode">Switch to ${paper ? "Live" : "Paper"}</button>
-    </div>`,
-  ];
-  if (s.positionsError) parts.push(`<div class="warn">${escapeHtml(s.positionsError)}</div>`);
-  if (!s.positionSections.length && !s.positionsError) {
-    parts.push(
-      `<div class="empty">${s.positionsLoaded ? "Futures and options are both off on the dashboard." : "Loading positions…"}</div>`,
-    );
-  }
-  for (const section of s.positionSections) {
-    parts.push(`<div class="section-head">
-      <span>${escapeHtml(section.title)}</span>
-      <span class="${section.direction}">${escapeHtml(section.totalText)}</span>
-    </div>`);
-    if (section.warning) parts.push(`<div class="warn">${escapeHtml(section.warning)}</div>`);
-    if (section.emptyText) parts.push(`<div class="note card">${escapeHtml(section.emptyText)}</div>`);
-    for (const group of section.groups) {
-      const key = `group:${section.title}:${group.root}`;
-      const open = expanded.has(key);
-      parts.push(`<article class="card stock${open ? " open" : ""}" data-key="${escapeHtml(key)}">
-        <button type="button" class="stock-toggle" aria-expanded="${open}">
-          <span class="chev" aria-hidden="true"></span>
-          <span class="stock-main"><span class="stock-name">${escapeHtml(group.root)}</span></span>
-          <span class="stock-price"><div class="price ${group.direction}">${escapeHtml(group.totalText)}</div></span>
-        </button>
-        <div class="stock-body group-lines">
-          <div class="summary ${group.direction}">${escapeHtml(group.summary)}</div>
-          ${group.contracts.map((c) => `<div class="${c.direction}">${escapeHtml(c.line)}</div>`).join("")}
-        </div>
-      </article>`);
-    }
-  }
-  positionsView.innerHTML = parts.join("");
-
-  positionsView.querySelector("#btn-mode")?.addEventListener("click", () => {
-    void window.tickr.setMode(paper ? "live" : "paper");
-  });
-  positionsView.querySelectorAll<HTMLElement>("article[data-key]").forEach((card) => {
-    const key = card.dataset.key ?? "";
-    card.querySelector(".stock-toggle")?.addEventListener("click", () => {
-      if (expanded.has(key)) expanded.delete(key);
-      else expanded.add(key);
-      card.classList.toggle("open");
-      requestFit();
-    });
-  });
-}
-
 function fillSelect<T extends string | number>(id: string, choices: Choice<T>[], selected: T): void {
   const el = $<HTMLSelectElement>(id);
   if (el.options.length !== choices.length) {
@@ -324,12 +233,6 @@ function renderSettings(s: State): void {
   $("bar-note").textContent = isMac
     ? "Stack shows two tickers side by side; show ticker symbol paints ADBE beside the logo."
     : "Windows trays show an icon only: rotate cycles the logo, and the tooltip lists every price.";
-
-  if (!dsFormLoaded) {
-    dsUrl.value = s.dailystocker.baseURL;
-    dsFormLoaded = true;
-  }
-  dsKey.placeholder = s.dailystocker.hasKey ? "stored (leave blank to keep)" : "paste key";
 }
 
 function renderStatus(s: State): void {
@@ -348,7 +251,6 @@ function render(): void {
   $("app-version").textContent = `v${state.version}`;
   renderStatus(state);
   renderStocks(state);
-  renderPositions(state);
   renderSettings(state);
   requestFit();
 }
@@ -398,20 +300,6 @@ addForm.addEventListener("submit", async (e) => {
   } else {
     addHint.textContent = `Added ${res.symbol}.`;
     addInput.value = "";
-  }
-  requestFit();
-});
-
-dsForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  dsHint.classList.remove("error");
-  const res = await window.tickr.saveDailystocker({ baseURL: dsUrl.value, apiKey: dsKey.value });
-  if ("error" in res) {
-    dsHint.classList.add("error");
-    dsHint.textContent = res.error;
-  } else {
-    dsKey.value = "";
-    dsHint.textContent = dsUrl.value.trim() ? "Saved. Positions are loading." : "Saved. Positions hidden.";
   }
   requestFit();
 });

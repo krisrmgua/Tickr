@@ -14,11 +14,10 @@ const api = {
   fitHeight: async height => ipcRenderer.send('capture:fit', fixture.width, height),
   fit: async (width, height) => ipcRenderer.send('capture:fit', width, height),
   setPrefs: async patch => { Object.assign(state.prefs, patch); notify(); return structuredClone(state); },
-  setMode: async mode => { state.dailystocker.mode = mode; notify(); },
   setOpenAtLogin: noOp, hide: noOp, quit: noOp, openExternal: noOp,
   openNotificationSettings: noOp, sendTestNotification: noOp, testNotification: noOp,
   openDataDir: noOp, resetPrefs: noOp, saveOpenAIKey: noOp, deleteOpenAIKey: noOp,
-  setOpenAIBalance: noOp, saveDailystocker: noOp,
+  setOpenAIBalance: noOp,
   setSource: async (id, patch) => {
     Object.assign(state.prefs.sources[id], patch);
     const source = state.sources.find(s => s.id === id);

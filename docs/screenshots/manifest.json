@@ -32,16 +32,8 @@
     }
   },
   {
-    "file": "positions.png",
-    "caption": "Paper futures and options, grouped by symbol.",
-    "size": {
-      "width": 800,
-      "height": 1378
-    }
-  },
-  {
     "file": "settings.png",
-    "caption": "Menu-bar display preferences and Dailystocker connection form.",
+    "caption": "Menu-bar display preferences.",
     "size": {
       "width": 800,
       "height": 1444

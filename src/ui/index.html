@@ -19,7 +19,6 @@
         </div>
         <div class="tabs">
           <button class="tab active" data-tab="stocks">Stocks</button>
-          <button class="tab hidden" data-tab="positions" id="tab-positions">Positions</button>
           <button class="tab" data-tab="settings">Settings</button>
         </div>
       </header>
@@ -34,8 +33,6 @@
           <div id="stock-error" class="warn hidden"></div>
           <div id="stock-list"></div>
         </section>
-
-        <section id="view-positions" class="view"></section>
 
         <section id="view-settings" class="view">
           <div class="card settings">
@@ -80,27 +77,6 @@
             <p class="note" id="bar-note"></p>
           </div>
 
-          <div class="card settings">
-            <h3>Dailystocker</h3>
-            <p class="note">
-              Dashboard address (https) and the API key. One key covers futures and options.
-              Leave the key blank to keep the stored one. Clear the address to hide positions.
-            </p>
-            <form id="ds-form" class="form" autocomplete="off">
-              <label>
-                Address
-                <input id="ds-url" placeholder="https://example.com" spellcheck="false" />
-              </label>
-              <label>
-                API key
-                <input id="ds-key" type="password" placeholder="paste key" />
-              </label>
-              <div class="actions">
-                <button type="submit" class="primary">Save</button>
-              </div>
-              <p class="hint" id="ds-hint"></p>
-            </form>
-          </div>
         </section>
       </main>
 

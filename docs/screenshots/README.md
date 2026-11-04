@@ -4,7 +4,7 @@ Screenshots of the current Electron interface on macOS, using fictional projects
 
 These are captures of `dist/index.html` built from the repository’s actual `src/ui` code. The layout, typography, colors, controls, and dialogs come from the app. A separate Electron entry point supplies synthetic state through a mock preload bridge; it never starts the production main process. Network requests are blocked, and application data goes to a temporary directory. Actions such as run, delete, merge, refresh, and save are inert.
 
-No installed app, sign-in, API key, real repository scan, market-data request, or scheduled command is needed. Example stock prices, allowance percentages, balances, and positions are illustrative. There are no AI-generated interface images.
+No installed app, sign-in, API key, real repository scan, market-data request, or scheduled command is needed. Example stock prices are illustrative. There are no AI-generated interface images.
 
 Captured from version **0.3.7**, source revision `7d6026d`.
 
@@ -59,17 +59,12 @@ Removing a stock asks for confirmation.
 
 ![Removing a stock asks for confirmation.](remove-confirmation.png)
 
-### Positions
-
-Paper futures and options, grouped by symbol.
-
-![Paper futures and options, grouped by symbol.](positions.png)
 
 ### Settings
 
-Menu-bar display preferences and Dailystocker connection form.
+Menu-bar display preferences.
 
-![Menu-bar display preferences and Dailystocker connection form.](settings.png)
+![Menu-bar display preferences.](settings.png)
 
 ### Scroll Settings
 

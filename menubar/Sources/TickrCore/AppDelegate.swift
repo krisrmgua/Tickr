@@ -12,9 +12,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     private let pollInterval: TimeInterval
     private var rotateIndex = 0
     private var addSymbolField: NSTextField?
-    /// Last good dailystocker summary. Kept across a failed fetch, like stock quotes.
-    private var positions: PositionSummary?
-    private var positionsError: String?
 
     init(symbols: [String]? = nil, pollInterval: TimeInterval = 60) {
         self.symbols = (symbols ?? Watchlist.symbols).map { Watchlist.normalize($0) }
@@ -276,7 +273,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
     }
 
     private func refresh() {
-        refreshPositions()
         let group = DispatchGroup()
         var next: [String: Quote] = [:]
         var errors: [String] = []
@@ -373,9 +369,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             menu.addItem(stockSubmenuItem(for: symbol))
         }
 
-        menu.addItem(.separator())
-        addPositionSections(to: menu)
-
         let addItem = NSMenuItem(
             title: "Add Stock…",
             action: #selector(addStockClicked),
@@ -462,32 +455,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             }
             directionItem.submenu = directionMenu
             menu.addItem(directionItem)
-        }
-
-        let settingsItem = NSMenuItem(
-            title: "Dailystocker Settings…",
-            action: #selector(dailystockerSettingsClicked),
-            keyEquivalent: "")
-        settingsItem.target = self
-        menu.addItem(settingsItem)
-
-        if DailystockerSettings.isConfigured {
-            // Live is green, Paper is orange. Click to switch.
-            let isPaper = DailystockerSettings.mode == "paper"
-            let modeItem = NSMenuItem(
-                title: isPaper ? "Mode: Paper" : "Mode: Live",
-                action: #selector(togglePositionsModeClicked),
-                keyEquivalent: "")
-            // Only the mode word is colored; "Mode:" keeps the normal menu text color.
-            let title = NSMutableAttributedString(
-                string: "Mode: ",
-                attributes: [.foregroundColor: NSColor.labelColor])
-            title.append(NSAttributedString(
-                string: isPaper ? "Paper" : "Live",
-                attributes: [.foregroundColor: isPaper ? NSColor.systemOrange : NSColor.systemGreen]))
-            modeItem.attributedTitle = title
-            modeItem.target = self
-            menu.addItem(modeItem)
         }
 
         if let lastError {
@@ -634,90 +601,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
         return item
     }
 
-    // MARK: - Dailystocker futures and options
-
-    /// Fetches open futures and options from dailystocker. A failure keeps the last
-    /// good summary and shows the error row, the same way stock quotes behave.
-    private func refreshPositions() {
-        guard DailystockerSettings.isConfigured, let apiKey = DailystockerSettings.apiKey() else {
-            positions = nil
-            positionsError = nil
-            return
-        }
-        DailystockerClient.fetch(
-            baseURL: DailystockerSettings.baseURL,
-            mode: DailystockerSettings.mode,
-            apiKey: apiKey
-        ) { [weak self] result in
-            guard let self else { return }
-            switch result {
-            case .success(let summary):
-                self.positions = summary
-                self.positionsError = nil
-            case .failure(let error):
-                self.positionsError = error.message
-            }
-            self.rebuildMenu()
-        }
-    }
-
-    private func addPositionSections(to menu: NSMenu) {
-        guard DailystockerSettings.isConfigured else { return }
-        if let positionsError {
-            menu.addItem(makeRow(positionsError, color: .systemOrange))
-        }
-        guard let positions else { return }
-
-        if positions.futures.enabled {
-            addPositionSection(menu, title: "Futures", section: positions.futures)
-            menu.addItem(.separator())
-        }
-        if positions.options.enabled {
-            addPositionSection(menu, title: "Options", section: positions.options)
-            menu.addItem(.separator())
-        }
-    }
-
-    private func addPositionSection(_ menu: NSMenu, title: String, section: PositionSection) {
-        let total = PositionFormatting.signedMoney(section.totalUnrealizedPnl)
-        menu.addItem(sectionHeaderItem("\(title)  \(total)"))
-
-        if let recorded = section.recordedAt {
-            if section.stale {
-                menu.addItem(makeRow(
-                    "Snapshot \(PositionFormatting.clock(recorded)) — stale",
-                    color: .systemOrange))
-            }
-        } else {
-            menu.addItem(makeRow("No snapshot yet", color: .systemOrange))
-        }
-
-        if section.groups.isEmpty {
-            menu.addItem(makeRow("No open \(title.lowercased())", color: .secondaryLabelColor))
-        }
-        for group in section.groups {
-            menu.addItem(positionGroupItem(group))
-        }
-    }
-
-    /// Root row (for example "MES  +$110.00"); its submenu lists each contract with P&L.
-    private func positionGroupItem(_ group: PositionGroup) -> NSMenuItem {
-        let total = PositionFormatting.signedMoney(group.totalUnrealizedPnl)
-        let item = NSMenuItem(title: "\(group.root)  \(total)", action: nil, keyEquivalent: "")
-        let sub = NSMenu()
-        sub.autoenablesItems = false
-        sub.addItem(makeRow(
-            "\(group.root)  open \(total)  ·  day \(PositionFormatting.signedMoney(group.totalDayPnl))",
-            bold: true,
-            color: Self.dayColor(for: group.totalUnrealizedPnl)))
-        for contract in group.contracts {
-            sub.addItem(makeRow(
-                PositionFormatting.contractLine(contract),
-                color: Self.dayColor(for: contract.unrealizedPnl)))
-        }
-        item.submenu = sub
-        return item
-    }
 
     /// Native section header on macOS 14+, otherwise a bold dimmed row (package floor is 13).
     private func sectionHeaderItem(_ title: String) -> NSMenuItem {
@@ -725,135 +608,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTextFieldDelegate {
             return NSMenuItem.sectionHeader(title: title)
         }
         return makeRow(title, bold: true, color: .secondaryLabelColor)
-    }
-
-    @objc private func togglePositionsModeClicked() {
-        DailystockerSettings.mode = DailystockerSettings.mode == "live" ? "paper" : "live"
-        positions = nil
-        positionsError = nil
-        refreshPositions()
-        rebuildMenu()
-    }
-
-    @objc private func toggleRotateClicked() {
-        TickrPrefs.rotateOneAtATime.toggle()
-        rotateIndex = 0
-        scheduleRotateTimer()
-        render()
-    }
-
-    @objc private func rotateIntervalClicked(_ sender: NSMenuItem) {
-        TickrPrefs.rotateIntervalSeconds = sender.tag
-        scheduleRotateTimer()
-        render()
-    }
-
-    @objc private func toggleStackClicked() {
-        TickrPrefs.stackTwoTickers.toggle()
-        rotateIndex = 0
-        scheduleRotateTimer()
-        render()
-    }
-
-    @objc private func togglePastelClicked() {
-        TickrPrefs.pastelBarColors.toggle()
-        render()
-    }
-
-    @objc private func toggleScrollClicked() {
-        TickrPrefs.scrollTickers.toggle()
-        scheduleRotateTimer()
-        render()
-    }
-
-    @objc private func scrollWidthClicked(_ sender: NSMenuItem) {
-        TickrPrefs.scrollWidthPoints = sender.tag
-        render()
-    }
-
-    @objc private func scrollSpeedClicked(_ sender: NSMenuItem) {
-        TickrPrefs.scrollSpeedPointsPerSecond = sender.tag
-        marqueeView?.applyPrefs()
-        render()
-    }
-
-    @objc private func scrollDirectionClicked(_ sender: NSMenuItem) {
-        if let raw = sender.representedObject as? String,
-           let direction = TickrPrefs.ScrollDirection(rawValue: raw) {
-            TickrPrefs.scrollDirection = direction
-            marqueeView?.applyPrefs()
-            render()
-        }
-    }
-
-    private func scrollChoiceMenu(
-        title: String,
-        values: [Int],
-        selected: Int,
-        label: (Int) -> String,
-        action: Selector
-    ) -> NSMenuItem {
-        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-        let sub = NSMenu()
-        sub.autoenablesItems = false
-        for value in values {
-            let choice = NSMenuItem(title: label(value), action: action, keyEquivalent: "")
-            choice.target = self
-            choice.tag = value
-            choice.state = value == selected ? .on : .off
-            sub.addItem(choice)
-        }
-        item.submenu = sub
-        return item
-    }
-
-    @objc private func dailystockerSettingsClicked() {
-        let alert = NSAlert()
-        alert.messageText = "Dailystocker"
-        alert.informativeText = "Dashboard address (https) and the API key. One key covers "
-            + "futures and options. Leave the key blank to keep the stored one."
-        alert.alertStyle = .informational
-        alert.addButton(withTitle: "Save")
-        alert.addButton(withTitle: "Cancel")
-
-        // Explicit frames in a plain container: NSAlert ignores an NSStackView
-        // accessory that has no intrinsic size, which left the fields invisible.
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 320, height: 110))
-        let urlLabel = NSTextField(labelWithString: "Address")
-        urlLabel.frame = NSRect(x: 0, y: 86, width: 320, height: 16)
-        let urlField = NSTextField(frame: NSRect(x: 0, y: 58, width: 320, height: 24))
-        urlField.placeholderString = "https://example.com"
-        urlField.stringValue = DailystockerSettings.baseURL
-        let keyLabel = NSTextField(labelWithString: "API key")
-        keyLabel.frame = NSRect(x: 0, y: 40, width: 320, height: 16)
-        let keyField = NSSecureTextField(frame: NSRect(x: 0, y: 12, width: 320, height: 24))
-        keyField.placeholderString = DailystockerSettings.apiKey() == nil
-            ? "paste key" : "stored (leave blank to keep)"
-        for view in [urlLabel, urlField, keyLabel, keyField] {
-            container.addSubview(view)
-        }
-        alert.accessoryView = container
-        alert.window.initialFirstResponder = urlField
-
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-
-        let url = urlField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard DailystockerClient.summaryURL(baseURL: url, mode: "live") != nil else {
-            presentNotice("Invalid address", "Enter an https address such as https://example.com.")
-            return
-        }
-        DailystockerSettings.baseURL = url
-
-        let key = keyField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !key.isEmpty, !DailystockerSettings.setAPIKey(key) {
-            presentNotice("Keychain", "Could not save the API key.")
-            return
-        }
-
-        positions = nil
-        positionsError = nil
-        refreshPositions()
-        rebuildMenu()
     }
 
     @objc private func refreshClicked() { refresh() }

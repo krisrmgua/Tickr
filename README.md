@@ -36,9 +36,9 @@ The gallery includes detail views, settings, and available actions. Click an ima
 | --- | --- |
 | <a href="docs/screenshots/stock-details.png"><img src="docs/screenshots/stock-details.png" alt="Expanded stock with the session sparkline and quote details." width="360" /></a><br>Expanded stock with the session sparkline and quote details. | <a href="docs/screenshots/remove-confirmation.png"><img src="docs/screenshots/remove-confirmation.png" alt="Removing a stock asks for confirmation." width="360" /></a><br>Removing a stock asks for confirmation. |
 
-| Positions | Settings |
-| --- | --- |
-| <a href="docs/screenshots/positions.png"><img src="docs/screenshots/positions.png" alt="Paper futures and options, grouped by symbol." width="360" /></a><br>Paper futures and options, grouped by symbol. | <a href="docs/screenshots/settings.png"><img src="docs/screenshots/settings.png" alt="Menu-bar display preferences and Dailystocker connection form." width="360" /></a><br>Menu-bar display preferences and Dailystocker connection form. |
+| Settings |
+| --- |
+| <a href="docs/screenshots/settings.png"><img src="docs/screenshots/settings.png" alt="Menu-bar display preferences." width="360" /></a><br>Menu-bar display preferences. |
 
 | Scroll Settings | Rotation Settings |
 | --- | --- |
@@ -177,21 +177,8 @@ Click the tray icon to open the dark panel. Click outside it, or press Escape, t
 
 - **Stocks** lists each symbol with logo, name, price, and change. Click a row for a sparkline of the day’s 5-minute bars with a dashed previous-close line, plus Price, Change, Prev, and As of. **Remove** is in the expanded row. The last symbol cannot be removed.
 - The add box at the top checks a ticker against Yahoo and appends it. Tickers are uppercased. Letters, digits, `.`, `-`, and `^` are kept.
-- **Positions** appears once Dailystocker is configured (below).
-- **Settings** holds the display modes, **Open at login**, and Dailystocker.
-- **Refresh** fetches quotes and positions now. **Quit Tickr** exits the app.
-
----
-
-## Futures and options (Dailystocker)
-
-Tickr can show open futures and options from a dashboard that serves `GET /api/positions/summary.json`. Futures are grouped by root (MES, ES, and so on). Options are grouped by underlying. Each group shows open P&L. Click a group for quantity, average, unrealized P&L, and day P&L per contract.
-
-In **Settings → Dailystocker**, enter the dashboard address and the API key. The address has to be `https`. The key is sent as the `X-Api-Key` header. Leave the key blank to keep the one already stored. Clear the address and save to hide positions.
-
-Until both are set, the **Positions** tab stays hidden. A failed request shows an orange row and keeps the last good numbers. The dashboard’s own `stale` flag marks an old snapshot.
-
-**Mode: Live** is the default. **Switch to Paper** changes the `mode` query. Live is green and Paper is orange. The same key covers both.
+- **Settings** holds the display modes and **Open at login**.
+- **Refresh** fetches quotes now. **Quit Tickr** exits the app.
 
 ---
 
@@ -201,12 +188,11 @@ Until both are set, the **Positions** tab stays hidden. A failed request shows a
 |---|---|---|
 | App data folder | `~/Library/Application Support/Tickr/` | `%APPDATA%\Tickr\` |
 | Watchlist and display settings | `prefs.json` in that folder | Same |
-| API key | `positions-api-key` in that folder, mode `600` | Same file, protected by your user profile’s ACL |
 | Logo cache | `logos/` in that folder | Same |
 
-`prefs.json` uses the Swift app’s key names: `trackedSymbols` (empty falls back to `SOFI`), `rotateOneAtATime`, `rotateIntervalSeconds`, `stackTwoTickers`, `scrollTickers`, `scrollWidthPoints`, `scrollSpeedPointsPerSecond`, `scrollDirection`, `pastelBarColors`, `dailystockerBaseURL`, `dailystockerMode`, plus `colorTrayTitle`.
+`prefs.json` uses the Swift app’s key names: `trackedSymbols` (empty falls back to `SOFI`), `rotateOneAtATime`, `rotateIntervalSeconds`, `stackTwoTickers`, `scrollTickers`, `scrollWidthPoints`, `scrollSpeedPointsPerSecond`, `scrollDirection`, `pastelBarColors`, plus Electron-only `colorTrayTitle` and `showTickerSymbol`.
 
-On macOS, the first launch copies those settings from the Swift app’s UserDefaults domain (`com.krsimmons.tickr`). The Swift app kept its API key and logo cache in the same Application Support folder, so they carry over as is.
+On macOS, the first launch copies those settings from the Swift app’s UserDefaults domain (`com.krsimmons.tickr`). The Swift app kept its logo cache in the same Application Support folder, so logos carry over as is.
 
 Tickr does not store a Yahoo password. On macOS it is an accessory app (`LSUIElement`), so it has no Dock icon.
 
@@ -224,7 +210,7 @@ npm run dev
 | Script | Purpose |
 |---|---|
 | `npm run build` | Production UI + Electron compile |
-| `npm run check` | Offline parse and logic checks (quotes, positions, prefs, tray text). No network. |
+| `npm run check` | Offline parse and logic checks (quotes, prefs, tray text). No network. |
 | `npm start` | Build, then run Electron against `dist/` |
 | `npm run pack:mac` | macOS `.app` + zip under `release/` |
 | `npm run pack:win` | Windows NSIS installer under `release/` |
@@ -234,8 +220,8 @@ npm run dev
 
 | Path | What |
 |---|---|
-| `electron/` | Main process: tray, panel window, polling, IPC, prefs and key storage |
-| `electron/core/` | Pure logic with no Electron imports: Yahoo and Dailystocker parsing, prefs, tray text, view models |
+| `electron/` | Main process: tray, panel window, polling, IPC, prefs storage |
+| `electron/core/` | Pure logic with no Electron imports: Yahoo parsing, prefs, tray text, view models |
 | `src/ui/` | Panel HTML, CSS, and TypeScript |
 | `scripts/` | `install.sh` (macOS) and `install.ps1` (Windows) |
 | `tickr` | macOS status, install, start, stop, and login control |
@@ -243,7 +229,7 @@ npm run dev
 
 ## Version
 
-The shipping version is `package.json` → `version` (currently **0.3.8**). The panel footer shows it as `v0.3.8`. Bump that field before each release you push and package; Electron Builder embeds it so `app.getVersion()` matches.
+The shipping version is `package.json` → `version` (currently **0.3.9**). The panel footer shows it as `v0.3.9`. Bump that field before each release you push and package; Electron Builder embeds it so `app.getVersion()` matches.
 
 ## License
 
