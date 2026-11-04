@@ -20,16 +20,24 @@ import {
   barSymbols,
   entriesFor,
   rotateStep,
-  scrollCells,
-  scrollTickMs,
   tooltipText,
 } from "./core/ticker";
 import { positionSections, stockView } from "./core/view";
 import { ensureLogo, logoDataUrl, logoTrayImage } from "./logos";
 import { swiftLaunchAgentPath } from "./paths";
 import { PrefsStore, readApiKey, writeApiKey } from "./store";
-import { clearCapsuleLogoCache, trayCapsuleImage } from "./trayCapsule";
+import {
+  buildScrollStrip,
+  clearCapsuleLogoCache,
+  scrollCapsuleFrame,
+  scrollStripKey,
+  trayCapsuleImage,
+  type ScrollStrip,
+} from "./trayCapsule";
 import { dotImage } from "./trayIcon";
+
+/** Swift marquee runs at ~30fps with point offsets. */
+const SCROLL_FPS_MS = 1000 / 30;
 
 const POLL_MS = 60_000;
 const PANEL_WIDTH = 400;
@@ -65,11 +73,14 @@ let positions: PositionSummary | null = null;
 let positionsError: string | null = null;
 let positionsSeq = 0;
 let rotateIndex = 0;
-let scrollOffset = 0;
+/** Point offset into the marquee strip (Swift TickrMarqueeView). */
+let scrollOffsetPts = 0;
+let scrollLastTick = 0;
+let scrollStrip: ScrollStrip | null = null;
 let pollTimer: NodeJS.Timeout | null = null;
 let rotateTimer: NodeJS.Timeout | null = null;
 let scrollTimer: NodeJS.Timeout | null = null;
-/** Bumps on every tray paint so stale async capsule frames are dropped. */
+/** Bumps on every full tray rebuild so stale async capsule frames are dropped. */
 let trayGen = 0;
 
 function prefs(): Prefs {
@@ -158,6 +169,20 @@ function renderTray(): void {
   void paintTray();
 }
 
+function applyScrollFrame(): void {
+  if (!tray || !scrollStrip || !isMac) return;
+  const p = prefs();
+  tray.setImage(
+    scrollCapsuleFrame(
+      scrollStrip,
+      p.scrollWidthPoints,
+      scrollOffsetPts,
+      p.scrollDirection === "rightToLeft",
+    ),
+  );
+  tray.setTitle("");
+}
+
 async function paintTray(): Promise<void> {
   if (!tray) return;
   const gen = ++trayGen;
@@ -171,6 +196,7 @@ async function paintTray(): Promise<void> {
 
   // Windows tray is icon-sized; keep the logo/dot + tooltip there.
   if (!isMac) {
+    scrollStrip = null;
     if (p.scrollTickers) {
       tray.setImage(dotImage(entries[0].direction, p.pastelBarColors));
       return;
@@ -180,23 +206,26 @@ async function paintTray(): Promise<void> {
     return;
   }
 
-  // macOS: bake Swift's dark capsule + content into one Retina image (no setTitle).
-  const image = p.scrollTickers
-    ? await trayCapsuleImage({
-        entries,
-        stacked: false,
-        pastel: p.pastelBarColors,
-        color: p.colorTrayTitle,
-        scrollWidthPoints: p.scrollWidthPoints,
-        scrollCells: scrollCells(entriesFor(symbols, quotes)),
-        scrollOffset,
-      })
-    : await trayCapsuleImage({
-        entries,
-        stacked: p.stackTwoTickers,
-        pastel: p.pastelBarColors,
-        color: p.colorTrayTitle,
-      });
+  // macOS scroll: rebuild strip when content changes, then composite sync frames.
+  if (p.scrollTickers) {
+    const scrollEntries = entriesFor(symbols, quotes);
+    const key = scrollStripKey(scrollEntries, p.pastelBarColors, p.colorTrayTitle);
+    if (!scrollStrip || scrollStrip.key !== key) {
+      const next = await buildScrollStrip(scrollEntries, p.pastelBarColors, p.colorTrayTitle);
+      if (gen !== trayGen || !tray) return;
+      scrollStrip = next;
+    }
+    applyScrollFrame();
+    return;
+  }
+
+  scrollStrip = null;
+  const image = await trayCapsuleImage({
+    entries,
+    stacked: p.stackTwoTickers,
+    pastel: p.pastelBarColors,
+    color: p.colorTrayTitle,
+  });
   if (gen !== trayGen || !tray) return;
   tray.setImage(image);
   tray.setTitle("");
@@ -216,17 +245,21 @@ function scheduleRotateTimer(): void {
   }, p.rotateIntervalSeconds * 1000);
 }
 
-/** Only macOS draws tray title text, so Windows has nothing to scroll. */
+/** Point-based marquee at ~30fps (Swift TickrMarqueeView). Windows has no scroll strip. */
 function scheduleScrollTimer(): void {
   if (scrollTimer) clearInterval(scrollTimer);
   scrollTimer = null;
   const p = prefs();
   if (!p.scrollTickers || !isMac) return;
-  const delta = p.scrollDirection === "rightToLeft" ? 1 : -1;
+  scrollLastTick = Date.now();
   scrollTimer = setInterval(() => {
-    scrollOffset += delta;
-    renderTray();
-  }, scrollTickMs(p.scrollSpeedPointsPerSecond));
+    const now = Date.now();
+    const dt = Math.min(0.1, (now - scrollLastTick) / 1000);
+    scrollLastTick = now;
+    scrollOffsetPts += prefs().scrollSpeedPointsPerSecond * dt;
+    if (scrollStrip) applyScrollFrame();
+    else renderTray();
+  }, SCROLL_FPS_MS);
 }
 
 function rescheduleTimers(): void {
@@ -257,6 +290,7 @@ async function refresh(): Promise<void> {
     void ensureLogo(symbol).then((landed) => {
       if (landed) {
         clearCapsuleLogoCache();
+        scrollStrip = null;
         render();
       }
     });
@@ -336,6 +370,7 @@ async function addSymbolFromPanel(raw: unknown): Promise<{ symbol: string } | { 
   void ensureLogo(symbol).then((landed) => {
     if (landed) {
       clearCapsuleLogoCache();
+      scrollStrip = null;
       render();
     }
   });
@@ -365,7 +400,10 @@ function setDisplayPrefs(raw: unknown): Prefs {
   ) {
     rotateIndex = 0;
   }
-  if (before.scrollTickers !== next.scrollTickers) scrollOffset = 0;
+  if (before.scrollTickers !== next.scrollTickers) {
+    scrollOffsetPts = 0;
+    scrollStrip = null;
+  }
   rescheduleTimers();
   render();
   return next;
