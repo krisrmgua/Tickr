@@ -4,7 +4,7 @@ module.exports = {
   "width": 400,
   "maxHeight": 850,
   "state": {
-    "version": "0.3.7",
+    "version": "0.3.9",
     "platform": "darwin",
     "pollSeconds": 60,
     "lastUpdated": 1793807368428,
@@ -24,9 +24,7 @@ module.exports = {
       "scrollDirection": "rightToLeft",
       "pastelBarColors": true,
       "colorTrayTitle": true,
-      "showTickerSymbol": true,
-      "dailystockerBaseURL": "https://dashboard.example.com",
-      "dailystockerMode": "paper"
+      "showTickerSymbol": true
     },
     "stocks": [
       {
@@ -280,66 +278,6 @@ module.exports = {
         }
       ]
     },
-    "dailystocker": {
-      "baseURL": "https://dashboard.example.com",
-      "mode": "paper",
-      "hasKey": false,
-      "configured": true
-    },
-    "positionSections": [
-      {
-        "title": "Futures",
-        "totalText": "+$187.50",
-        "direction": "up",
-        "warning": null,
-        "emptyText": null,
-        "groups": [
-          {
-            "root": "MES",
-            "totalText": "+$187.50",
-            "direction": "up",
-            "summary": "2 contracts \u00b7 simulated position",
-            "contracts": [
-              {
-                "line": "MESZ6 \u00b7 Qty 2 \u00b7 Avg 5,820.00",
-                "direction": "flat"
-              },
-              {
-                "line": "Unrealized +$187.50 \u00b7 Day +$92.50",
-                "direction": "up"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Options",
-        "totalText": "\u2212$42.00",
-        "direction": "down",
-        "warning": null,
-        "emptyText": null,
-        "groups": [
-          {
-            "root": "AAPL",
-            "totalText": "\u2212$42.00",
-            "direction": "down",
-            "summary": "1 contract \u00b7 simulated position",
-            "contracts": [
-              {
-                "line": "AAPL 230 C \u00b7 Dec 18 \u00b7 Qty 1 \u00b7 Avg $4.20",
-                "direction": "flat"
-              },
-              {
-                "line": "Unrealized \u2212$42.00 \u00b7 Day \u2212$18.00",
-                "direction": "down"
-              }
-            ]
-          }
-        ]
-      }
-    ],
-    "positionsLoaded": true,
-    "positionsError": null,
     "openAtLogin": true
   },
   "shots": [
@@ -361,17 +299,12 @@ module.exports = {
       "action": "document.querySelector(\"[data-act=\\\"remove\\\"]\").click();",
       "expect": "Remove AAPL?"
     },
-    {
-      "name": "positions",
-      "caption": "Paper futures and options, grouped by symbol.",
-      "action": "document.querySelector(\"#confirm-cancel\").click();document.querySelector(\"[data-tab=\\\"positions\\\"]\").click();document.querySelectorAll('#view-positions .stock-toggle').forEach(x=>x.click());",
-      "expect": "simulated position"
-    },
+
     {
       "name": "settings",
-      "caption": "Menu-bar display preferences and Dailystocker connection form.",
+      "caption": "Menu-bar display preferences.",
       "action": "document.querySelector(\"[data-tab=\\\"settings\\\"]\").click();",
-      "expect": "Dailystocker"
+      "expect": "Menu bar"
     },
     {
       "name": "scroll-settings",

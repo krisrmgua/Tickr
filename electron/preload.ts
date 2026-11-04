@@ -7,8 +7,6 @@ contextBridge.exposeInMainWorld("tickr", {
   openNews: (symbol: string) => ipcRenderer.invoke("tickr:openNews", symbol),
   refresh: () => ipcRenderer.invoke("tickr:refresh"),
   setPrefs: (patch: unknown) => ipcRenderer.invoke("tickr:setPrefs", patch),
-  saveDailystocker: (input: unknown) => ipcRenderer.invoke("tickr:saveDailystocker", input),
-  setMode: (mode: string) => ipcRenderer.invoke("tickr:setMode", mode),
   setOpenAtLogin: (value: boolean) => ipcRenderer.invoke("tickr:setOpenAtLogin", value),
   onChanged: (cb: () => void) => {
     const handler = () => cb();

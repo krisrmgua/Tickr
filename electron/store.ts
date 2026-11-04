@@ -7,7 +7,7 @@ import {
   sanitizePrefs,
   type Prefs,
 } from "./core/prefs";
-import { apiKeyPath, prefsPath } from "./paths";
+import { prefsPath } from "./paths";
 
 /** Prefs live in one JSON file under userData. */
 export class PrefsStore {
@@ -57,26 +57,5 @@ function importSwiftDefaults(): Partial<Prefs> {
     return parseSwiftDefaultsPlist(xml);
   } catch {
     return {};
-  }
-}
-
-export function readApiKey(): string | null {
-  try {
-    const key = fs.readFileSync(apiKeyPath(), "utf8").trim();
-    return key || null;
-  } catch {
-    return null;
-  }
-}
-
-/** Mode 600 on macOS; on Windows the file inherits the per-user %APPDATA% ACL. */
-export function writeApiKey(key: string): boolean {
-  const file = apiKeyPath();
-  try {
-    fs.writeFileSync(file, key, { mode: 0o600 });
-    fs.chmodSync(file, 0o600);
-    return true;
-  } catch {
-    return false;
   }
 }

@@ -19,4 +19,4 @@ npm run check
 
 The app targets macOS 13+ and Windows 10/11 and is built with Electron, TypeScript, and Vite. A live check needs a network path to Yahoo Finance. The Swift app in `menubar/` is kept for reference only.
 
-User-facing behavior belongs in the README when install steps, the watchlist, the tray modes, or the positions dashboard change.
+User-facing behavior belongs in the README when install steps, the watchlist, the tray modes, or the tray modes change.

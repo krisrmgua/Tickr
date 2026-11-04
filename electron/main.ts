@@ -2,7 +2,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { app, BrowserWindow, ipcMain, Menu, screen, shell, Tray } from "electron";
 import { fetchQuote, type Quote } from "./core/quote";
-import { fetchPositions, summaryURL, BAD_URL_MESSAGE, type PositionSummary } from "./core/positions";
 import {
   normalizeSymbol,
   removeSymbol,
@@ -14,7 +13,6 @@ import {
   SCROLL_SPEED_CHOICES,
   scrollWidthLabel,
   SCROLL_WIDTH_CHOICES,
-  type DailystockerMode,
   type Prefs,
 } from "./core/prefs";
 import {
@@ -23,10 +21,10 @@ import {
   rotateStep,
   tooltipText,
 } from "./core/ticker";
-import { positionSections, stockView } from "./core/view";
+import { stockView } from "./core/view";
 import { ensureLogo, logoDataUrl, logoTrayImage } from "./logos";
 import { swiftLaunchAgentPath } from "./paths";
-import { PrefsStore, readApiKey, writeApiKey } from "./store";
+import { PrefsStore } from "./store";
 import {
   buildScrollStrip,
   clearCapsuleLogoCache,
@@ -50,7 +48,7 @@ const WIN_TOOLTIP_MAX = 127;
 const isDev = process.env.TICKR_DEV === "1";
 const isMac = process.platform === "darwin";
 
-/** Display prefs the panel may change directly; the watchlist and dailystocker have their own handlers. */
+/** Display prefs the panel may change directly; the watchlist has its own handlers. */
 const DISPLAY_KEYS = [
   "rotateOneAtATime",
   "rotateIntervalSeconds",
@@ -70,10 +68,6 @@ let store: PrefsStore;
 const quotes = new Map<string, Quote>();
 let lastError: string | null = null;
 let lastUpdated: number | null = null;
-/** Last good dailystocker summary, kept across a failed fetch like stock quotes. */
-let positions: PositionSummary | null = null;
-let positionsError: string | null = null;
-let positionsSeq = 0;
 let rotateIndex = 0;
 /** Point offset into the marquee strip (Swift TickrMarqueeView). */
 let scrollOffsetPts = 0;
@@ -295,7 +289,6 @@ function rescheduleTimers(): void {
 }
 
 async function refresh(): Promise<void> {
-  void refreshPositions();
   const tracked = [...prefs().trackedSymbols];
   const results = await Promise.all(
     tracked.map(async (symbol) => [symbol, await fetchQuote(symbol)] as const),
@@ -325,35 +318,8 @@ async function refresh(): Promise<void> {
   render();
 }
 
-function dailystockerKey(): string | null {
-  return prefs().dailystockerBaseURL ? readApiKey() : null;
-}
-
-/** A failure keeps the last good summary and shows the error, the same way stock quotes behave. */
-async function refreshPositions(): Promise<void> {
-  const seq = ++positionsSeq;
-  const p = prefs();
-  const key = dailystockerKey();
-  if (!key) {
-    positions = null;
-    positionsError = null;
-    notifyPanel();
-    return;
-  }
-  const result = await fetchPositions(p.dailystockerBaseURL, p.dailystockerMode, key);
-  if (seq !== positionsSeq) return;
-  if (result.ok) {
-    positions = result.summary;
-    positionsError = null;
-  } else {
-    positionsError = result.error;
-  }
-  notifyPanel();
-}
-
 function buildState() {
   const p = prefs();
-  const hasKey = readApiKey() != null;
   return {
     version: app.getVersion(),
     platform: process.platform,
@@ -371,15 +337,6 @@ function buildState() {
         label: scrollDirectionTitle(v),
       })),
     },
-    dailystocker: {
-      baseURL: p.dailystockerBaseURL,
-      mode: p.dailystockerMode,
-      hasKey,
-      configured: Boolean(p.dailystockerBaseURL) && hasKey,
-    },
-    positionSections: positionSections(positions),
-    positionsLoaded: positions != null,
-    positionsError,
     openAtLogin: app.getLoginItemSettings().openAtLogin,
   };
 }
@@ -436,31 +393,6 @@ function setDisplayPrefs(raw: unknown): Prefs {
   return next;
 }
 
-function saveDailystocker(raw: unknown): { ok: true } | { error: string } {
-  const input = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
-  const url = typeof input.baseURL === "string" ? input.baseURL.trim() : "";
-  const key = typeof input.apiKey === "string" ? input.apiKey.trim() : "";
-  if (url && !summaryURL(url, "live")) {
-    return { error: `${BAD_URL_MESSAGE} Enter an https address such as https://example.com.` };
-  }
-  if (key && !writeApiKey(key)) return { error: "Could not save the API key." };
-  store.update({ dailystockerBaseURL: url });
-  positions = null;
-  positionsError = null;
-  void refreshPositions();
-  notifyPanel();
-  return { ok: true };
-}
-
-function setMode(raw: unknown): void {
-  const mode: DailystockerMode = raw === "paper" ? "paper" : "live";
-  store.update({ dailystockerMode: mode });
-  positions = null;
-  positionsError = null;
-  void refreshPositions();
-  notifyPanel();
-}
-
 function wireIpc(): void {
   ipcMain.handle("tickr:getState", () => buildState());
   ipcMain.handle("tickr:addSymbol", (_e, raw: unknown) => addSymbolFromPanel(raw));
@@ -477,8 +409,6 @@ function wireIpc(): void {
   ipcMain.handle("tickr:setPrefs", (_e, raw: unknown) => {
     setDisplayPrefs(raw);
   });
-  ipcMain.handle("tickr:saveDailystocker", (_e, raw: unknown) => saveDailystocker(raw));
-  ipcMain.handle("tickr:setMode", (_e, raw: unknown) => setMode(raw));
   ipcMain.handle("tickr:setOpenAtLogin", (_e, value: unknown) => {
     app.setLoginItemSettings({ openAtLogin: value === true });
     notifyPanel();

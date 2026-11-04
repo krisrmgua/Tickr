@@ -6,7 +6,6 @@ export const SCROLL_WIDTH_CHOICES = [100, 140, 180, 220, 280];
 export const SCROLL_SPEED_CHOICES = [8, 14, 24, 40, 64, 96];
 
 export type ScrollDirection = "rightToLeft" | "leftToRight";
-export type DailystockerMode = "live" | "paper";
 
 /**
  * Same keys as the Swift app's UserDefaults. Stack and scroll are mutually
@@ -26,8 +25,6 @@ export interface Prefs {
   colorTrayTitle: boolean;
   /** After the logo: `ADBE $246.14` instead of just `$246.14`. Electron only. */
   showTickerSymbol: boolean;
-  dailystockerBaseURL: string;
-  dailystockerMode: DailystockerMode;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -42,8 +39,6 @@ export const DEFAULT_PREFS: Prefs = {
   pastelBarColors: true,
   colorTrayTitle: true,
   showTickerSymbol: false,
-  dailystockerBaseURL: "",
-  dailystockerMode: "live",
 };
 
 /** Uppercase ticker; keep letters, digits, `.`, `-`, `^`. */
@@ -107,9 +102,6 @@ export function sanitizePrefs(raw: unknown): Prefs {
     pastelBarColors: bool("pastelBarColors"),
     colorTrayTitle: bool("colorTrayTitle"),
     showTickerSymbol: bool("showTickerSymbol"),
-    dailystockerBaseURL:
-      typeof r.dailystockerBaseURL === "string" ? r.dailystockerBaseURL.trim() : "",
-    dailystockerMode: r.dailystockerMode === "paper" ? "paper" : "live",
   };
   if (prefs.scrollTickers) {
     prefs.rotateOneAtATime = false;
@@ -171,8 +163,6 @@ const SWIFT_KEYS: (keyof Prefs)[] = [
   "scrollSpeedPointsPerSecond",
   "scrollDirection",
   "pastelBarColors",
-  "dailystockerBaseURL",
-  "dailystockerMode",
 ];
 
 function unescapeXml(s: string): string {

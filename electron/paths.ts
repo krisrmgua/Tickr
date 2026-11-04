@@ -5,7 +5,7 @@ import { app } from "electron";
 
 /**
  * `~/Library/Application Support/Tickr` on macOS, the same folder the Swift
- * app used for its API key and logo cache. `%APPDATA%\Tickr` on Windows.
+ * app used for its logo cache. `%APPDATA%\Tickr` on Windows.
  */
 export function userDir(): string {
   const dir = app.getPath("userData");
@@ -15,10 +15,6 @@ export function userDir(): string {
 
 export function prefsPath(): string {
   return path.join(userDir(), "prefs.json");
-}
-
-export function apiKeyPath(): string {
-  return path.join(userDir(), "positions-api-key");
 }
 
 export function logosDir(): string {
