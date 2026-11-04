@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { app, BrowserWindow, ipcMain, Menu, nativeImage, screen, Tray } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, screen, Tray } from "electron";
 import { fetchQuote, type Quote } from "./core/quote";
 import { fetchPositions, summaryURL, BAD_URL_MESSAGE, type PositionSummary } from "./core/positions";
 import {
@@ -21,16 +21,14 @@ import {
   entriesFor,
   rotateStep,
   scrollCells,
-  scrollFrame,
   scrollTickMs,
-  scrollWidthChars,
-  titleText,
   tooltipText,
 } from "./core/ticker";
 import { positionSections, stockView } from "./core/view";
 import { ensureLogo, logoDataUrl, logoTrayImage } from "./logos";
 import { swiftLaunchAgentPath } from "./paths";
 import { PrefsStore, readApiKey, writeApiKey } from "./store";
+import { clearCapsuleLogoCache, trayCapsuleImage } from "./trayCapsule";
 import { dotImage } from "./trayIcon";
 
 const POLL_MS = 60_000;
@@ -71,6 +69,8 @@ let scrollOffset = 0;
 let pollTimer: NodeJS.Timeout | null = null;
 let rotateTimer: NodeJS.Timeout | null = null;
 let scrollTimer: NodeJS.Timeout | null = null;
+/** Bumps on every tray paint so stale async capsule frames are dropped. */
+let trayGen = 0;
 
 function prefs(): Prefs {
   return store.get();
@@ -155,7 +155,12 @@ function render(): void {
 }
 
 function renderTray(): void {
+  void paintTray();
+}
+
+async function paintTray(): Promise<void> {
   if (!tray) return;
+  const gen = ++trayGen;
   const p = prefs();
   const symbols = p.trackedSymbols;
   let tip = `Tickr\n${tooltipText(symbols, quotes, p, lastError)}`;
@@ -163,29 +168,38 @@ function renderTray(): void {
   tray.setToolTip(tip);
 
   const entries = entriesFor(barSymbols(symbols, p, rotateIndex), quotes);
-  if (p.scrollTickers) {
-    tray.setImage(isMac ? nativeImage.createEmpty() : dotImage(entries[0].direction, p.pastelBarColors));
-    renderScrollFrame();
+
+  // Windows tray is icon-sized; keep the logo/dot + tooltip there.
+  if (!isMac) {
+    if (p.scrollTickers) {
+      tray.setImage(dotImage(entries[0].direction, p.pastelBarColors));
+      return;
+    }
+    const logo = logoTrayImage(entries[0].symbol);
+    tray.setImage(logo ?? dotImage(entries[0].direction, p.pastelBarColors));
     return;
   }
-  const logo = logoTrayImage(entries[0].symbol);
-  tray.setImage(logo ?? dotImage(entries[0].direction, p.pastelBarColors));
-  if (isMac) {
-    tray.setTitle(
-      titleText(entries, { omitFirstSymbol: logo != null, color: p.colorTrayTitle }),
-      { fontType: "monospacedDigit" },
-    );
-  }
-}
 
-function renderScrollFrame(): void {
-  if (!tray || !isMac) return;
-  const p = prefs();
-  const cells = scrollCells(entriesFor(p.trackedSymbols, quotes));
-  tray.setTitle(
-    scrollFrame(cells, scrollWidthChars(p.scrollWidthPoints), scrollOffset, p.colorTrayTitle),
-    { fontType: "monospaced" },
-  );
+  // macOS: bake Swift's dark capsule + content into one Retina image (no setTitle).
+  const image = p.scrollTickers
+    ? await trayCapsuleImage({
+        entries,
+        stacked: false,
+        pastel: p.pastelBarColors,
+        color: p.colorTrayTitle,
+        scrollWidthPoints: p.scrollWidthPoints,
+        scrollCells: scrollCells(entriesFor(symbols, quotes)),
+        scrollOffset,
+      })
+    : await trayCapsuleImage({
+        entries,
+        stacked: p.stackTwoTickers,
+        pastel: p.pastelBarColors,
+        color: p.colorTrayTitle,
+      });
+  if (gen !== trayGen || !tray) return;
+  tray.setImage(image);
+  tray.setTitle("");
 }
 
 function scheduleRotateTimer(): void {
@@ -211,7 +225,7 @@ function scheduleScrollTimer(): void {
   const delta = p.scrollDirection === "rightToLeft" ? 1 : -1;
   scrollTimer = setInterval(() => {
     scrollOffset += delta;
-    renderScrollFrame();
+    renderTray();
   }, scrollTickMs(p.scrollSpeedPointsPerSecond));
 }
 
@@ -241,7 +255,10 @@ async function refresh(): Promise<void> {
   if (got) lastUpdated = Date.now();
   for (const symbol of tracked) {
     void ensureLogo(symbol).then((landed) => {
-      if (landed) render();
+      if (landed) {
+        clearCapsuleLogoCache();
+        render();
+      }
     });
   }
   render();
@@ -317,7 +334,10 @@ async function addSymbolFromPanel(raw: unknown): Promise<{ symbol: string } | { 
   rescheduleTimers();
   render();
   void ensureLogo(symbol).then((landed) => {
-    if (landed) render();
+    if (landed) {
+      clearCapsuleLogoCache();
+      render();
+    }
   });
   return { symbol };
 }
