@@ -126,8 +126,22 @@ function fitPanelToContent(contentHeight: number): void {
     Math.max(Math.ceil(contentHeight) + PANEL_PAD, PANEL_MIN_HEIGHT),
     maxH,
   );
+  // Pref changes (scroll/stack/rotate) resize the tray capsule and the panel
+  // chrome. Re-centering on the tray every time makes the window jump — keep
+  // the current origin while open; only togglePanel re-anchors.
+  if (panel.isVisible()) {
+    const before = panel.getBounds();
+    panel.setContentSize(PANEL_WIDTH, height);
+    const after = panel.getBounds();
+    if (!isMac && after.height !== before.height) {
+      // Windows panel sits above the tray; pin the bottom edge.
+      panel.setPosition(before.x, before.y + (before.height - after.height), false);
+    } else {
+      panel.setPosition(before.x, before.y, false);
+    }
+    return;
+  }
   panel.setContentSize(PANEL_WIDTH, height);
-  if (panel.isVisible()) positionPanel(panel);
 }
 
 function positionPanel(win: BrowserWindow): void {
