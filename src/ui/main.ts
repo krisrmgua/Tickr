@@ -47,6 +47,7 @@ interface Prefs {
   scrollDirection: "rightToLeft" | "leftToRight";
   pastelBarColors: boolean;
   colorTrayTitle: boolean;
+  showTickerSymbol: boolean;
   dailystockerBaseURL: string;
   dailystockerMode: "live" | "paper";
 }
@@ -302,6 +303,7 @@ function renderSettings(s: State): void {
   $<HTMLInputElement>("p-rotate").checked = p.rotateOneAtATime;
   $<HTMLInputElement>("p-stack").checked = p.stackTwoTickers;
   $<HTMLInputElement>("p-scroll").checked = p.scrollTickers;
+  $<HTMLInputElement>("p-show-symbol").checked = p.showTickerSymbol;
   $<HTMLInputElement>("p-pastel").checked = p.pastelBarColors;
   $<HTMLInputElement>("p-color-title").checked = p.colorTrayTitle;
   $<HTMLInputElement>("p-login").checked = s.openAtLogin;
@@ -311,9 +313,8 @@ function renderSettings(s: State): void {
   fillSelect("p-scroll-direction", s.choices.scrollDirection, p.scrollDirection);
   $("row-rotate-interval").classList.toggle("hidden", !p.rotateOneAtATime);
   $("scroll-opts").classList.toggle("hidden", !p.scrollTickers);
-  $("p-stack").closest("label")?.classList.toggle("hidden", !isMac);
   $("bar-note").textContent = isMac
-    ? "Stack shows two tickers side by side in the title; rotate with stack pages through pairs."
+    ? "Stack shows two tickers side by side; show ticker symbol paints ADBE beside the logo."
     : "Windows trays show an icon only: rotate cycles the logo, and the tooltip lists every price.";
 
   if (!dsFormLoaded) {
@@ -365,6 +366,7 @@ function bindSelect(id: string, key: keyof Prefs, numeric: boolean): void {
 bindCheckbox("p-rotate", "rotateOneAtATime");
 bindCheckbox("p-stack", "stackTwoTickers");
 bindCheckbox("p-scroll", "scrollTickers");
+bindCheckbox("p-show-symbol", "showTickerSymbol");
 bindCheckbox("p-pastel", "pastelBarColors");
 bindCheckbox("p-color-title", "colorTrayTitle");
 bindSelect("p-rotate-interval", "rotateIntervalSeconds", true);
