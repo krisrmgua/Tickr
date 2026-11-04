@@ -1,30 +1,22 @@
-const fs = require('node:fs');
-const path = require('node:path');
-const { createCanvas, loadImage } = require('@napi-rs/canvas');
-async function board(rows, output) {
-  const images = await Promise.all(rows.map(async row => ({ ...row, image: await loadImage(row.png) })));
-  const width = Math.max(800, ...images.map(r => r.image.width + 48));
-  const canvas = createCanvas(width, 64 + rows.length * 110);
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#182c40'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#e8eff8'; ctx.font = '500 24px sans-serif';
-  ctx.fillText('Menu bar · sample data', 24, 38);
-  for (let i = 0; i < images.length; i++) {
-    const row = images[i], y = 78 + i * 110;
-    ctx.fillStyle = '#a9bbce'; ctx.font = '18px sans-serif'; ctx.fillText(row.label, 24, y);
-    ctx.drawImage(row.image, 24, y + 12);
-  }
-  const file = path.join(output, 'menu-bar.png');
-  fs.writeFileSync(file, canvas.toBuffer('image/png'));
-  return { file: 'menu-bar.png', caption: 'Actual menu-bar renderer with synthetic values, arranged on a presentation backdrop.', size: { width, height: canvas.height } };
-}
-module.exports = async (_root, output) => {
-  const { trayCapsuleImage } = require('../../dist-electron/trayCapsule.js');
-  const entries = [ { symbol: 'AAPL', priceText: '$228.40', direction: 'up' }, { symbol: 'MSFT', priceText: '$416.25', direction: 'down' } ];
-  const rows = [];
-  for (const [label, stacked, shown] of [ ['Inline prices', false, entries], ['Two ticker stack', true, entries], ['Single ticker / rotation frame', false, entries.slice(0, 1)] ]) {
-    const image = await trayCapsuleImage({ entries: shown, stacked, pastel: true, color: true, showSymbol: true });
-    rows.push({ label, png: image.toPNG() });
-  }
-  return board(rows, output);
+const board = require('./menu-board.cjs');
+module.exports = async (_root,output) => {
+  const {trayCapsuleImage,buildScrollStrip,scrollCapsuleFrame}=require('../../dist-electron/trayCapsule.js');
+  const {dotImage}=require('../../dist-electron/trayIcon.js');
+  const {logoTrayImage}=require('../../dist-electron/logos.js');
+  const entries=[{symbol:'SOFI',priceText:'$18.25',direction:'up'},{symbol:'AAPL',priceText:'$228.40',direction:'up'},{symbol:'MSFT',priceText:'$416.25',direction:'down'}];
+  const rows=[];
+  const logo=logoTrayImage('SOFI');
+  if(logo)rows.push({label:'Bundled company-logo tray icon · SOFI',png:logo.toPNG()});
+  rows.push({label:'Fallback tray dots · up / down / unchanged',png:['up','down','flat'].map(direction=>dotImage(direction,true).toPNG())});
+  for(const [label,stacked,shown,pastel,color,showSymbol] of [
+    ['Inline prices · logo and ticker labels',false,entries,true,true,true],
+    ['Two ticker stack',true,entries.slice(0,2),true,true,true],
+    ['Single ticker · one rotation frame',false,entries.slice(0,1),true,true,true],
+    ['Logo and price · ticker label hidden',false,entries.slice(0,1),true,true,false],
+    ['Saturated price colors',false,entries,false,true,true],
+    ['Price coloring switched off',false,entries,true,false,true],
+  ]) rows.push({label,png:(await trayCapsuleImage({entries:shown,stacked,pastel,color,showSymbol})).toPNG()});
+  const strip=await buildScrollStrip(entries,true,true,true);
+  rows.push({label:'Scrolling mode · static frame of the moving strip',png:scrollCapsuleFrame(strip,220,24,true).toPNG()});
+  return board(output,'menu-bar.png','Tickr · menu-bar and tray views',rows,'Actual Tickr company-logo and fallback icons, inline and stacked prices, rotation and scrolling frames, and color/symbol options. All prices are fictional.');
 };
