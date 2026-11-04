@@ -1,11 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
-import { app, BrowserWindow, ipcMain, Menu, screen, Tray } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, screen, shell, Tray } from "electron";
 import { fetchQuote, type Quote } from "./core/quote";
 import { fetchPositions, summaryURL, BAD_URL_MESSAGE, type PositionSummary } from "./core/positions";
 import {
   normalizeSymbol,
   removeSymbol,
+  yahooNewsURL,
   rotateIntervalLabel,
   ROTATE_INTERVAL_CHOICES,
   scrollDirectionTitle,
@@ -464,6 +465,12 @@ function wireIpc(): void {
   ipcMain.handle("tickr:getState", () => buildState());
   ipcMain.handle("tickr:addSymbol", (_e, raw: unknown) => addSymbolFromPanel(raw));
   ipcMain.handle("tickr:removeSymbol", (_e, raw: unknown) => removeSymbolFromPanel(raw));
+  ipcMain.handle("tickr:openNews", async (_e, raw: unknown) => {
+    const url = yahooNewsURL(typeof raw === "string" ? raw : "");
+    if (!url) return { error: "That symbol cannot open a news page." };
+    await shell.openExternal(url);
+    return { ok: true as const };
+  });
   ipcMain.handle("tickr:refresh", async () => {
     await refresh();
   });

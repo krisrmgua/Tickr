@@ -79,6 +79,7 @@ declare global {
       getState: () => Promise<State>;
       addSymbol: (symbol: string) => Promise<{ symbol: string } | { error: string }>;
       removeSymbol: (symbol: string) => Promise<{ ok: true } | { error: string }>;
+      openNews: (symbol: string) => Promise<{ ok: true } | { error: string }>;
       refresh: () => Promise<void>;
       setPrefs: (patch: Partial<Prefs>) => Promise<void>;
       saveDailystocker: (input: { baseURL: string; apiKey: string }) => Promise<{ ok: true } | { error: string }>;
@@ -198,7 +199,10 @@ function renderStocks(s: State): void {
         </button>
         <div class="stock-body">
           ${details}
-          ${canRemove ? `<div class="row-actions"><button type="button" class="danger" data-act="remove">Remove ${escapeHtml(stock.symbol)}</button></div>` : ""}
+          <div class="row-actions">
+            <button type="button" class="ghost" data-act="news">Read News</button>
+            ${canRemove ? `<button type="button" class="danger" data-act="remove">Remove ${escapeHtml(stock.symbol)}</button>` : ""}
+          </div>
         </div>
       </article>`;
     })
@@ -212,6 +216,10 @@ function renderStocks(s: State): void {
       else expanded.add(key);
       card.classList.toggle("open");
       requestFit();
+    });
+    card.querySelector('[data-act="news"]')?.addEventListener("click", async () => {
+      const res = await window.tickr.openNews(symbol);
+      if ("error" in res) addHint.textContent = res.error;
     });
     card.querySelector('[data-act="remove"]')?.addEventListener("click", async () => {
       const ok = await askConfirm({

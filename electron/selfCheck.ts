@@ -22,6 +22,7 @@ import {
   DEFAULT_PREFS,
   normalizeSymbol,
   parseSwiftDefaultsPlist,
+  yahooNewsURL,
   removeSymbol,
   rotateIntervalLabel,
   ROTATE_INTERVAL_CHOICES,
@@ -75,6 +76,12 @@ check("market time in ms", quote?.marketTime === 1792006846000);
 check("status price", quote != null && statusPrice(quote) === "$14.15");
 check("status title fallback", quote != null && statusTitle(quote) === "SOFI $14.15");
 check("normalize ticker", normalizeSymbol(" aapl ") === "AAPL");
+check("yahoo news url", yahooNewsURL(" sofi ") === "https://finance.yahoo.com/quote/SOFI/news/");
+check(
+  "yahoo news encodes index",
+  yahooNewsURL("^gspc") === "https://finance.yahoo.com/quote/%5EGSPC/news/",
+);
+check("yahoo news rejects blank", yahooNewsURL("  ") == null);
 check("normalize keeps ^.-", normalizeSymbol("^gspc brk.b-x!") === "^GSPCBRK.B-X");
 check("rejects empty", parseYahooChart({}) == null);
 check("chart URL host", new URL(chartURL("SOFI")).host === "query1.finance.yahoo.com");

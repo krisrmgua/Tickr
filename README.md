@@ -243,7 +243,7 @@ npm run dev
 
 ## Version
 
-The shipping version is `package.json` → `version` (currently **0.3.0**). The panel footer shows it as `v0.3.0`. Bump that field before each release you push and package; Electron Builder embeds it so `app.getVersion()` matches.
+The shipping version is `package.json` → `version` (currently **0.3.8**). The panel footer shows it as `v0.3.8`. Bump that field before each release you push and package; Electron Builder embeds it so `app.getVersion()` matches.
 
 ## License
 
