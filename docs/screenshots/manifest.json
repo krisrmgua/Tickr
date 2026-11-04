@@ -1,0 +1,66 @@
+[
+  {
+    "file": "menu-bar.png",
+    "caption": "Actual menu-bar renderer with synthetic values, arranged on a presentation backdrop.",
+    "size": {
+      "width": 800,
+      "height": 394
+    }
+  },
+  {
+    "file": "stocks.png",
+    "caption": "Watchlist with example prices and positive and negative daily changes.",
+    "size": {
+      "width": 800,
+      "height": 778
+    }
+  },
+  {
+    "file": "stock-details.png",
+    "caption": "Expanded stock with the session sparkline and quote details.",
+    "size": {
+      "width": 800,
+      "height": 1148
+    }
+  },
+  {
+    "file": "remove-confirmation.png",
+    "caption": "Removing a stock asks for confirmation.",
+    "size": {
+      "width": 800,
+      "height": 1148
+    }
+  },
+  {
+    "file": "positions.png",
+    "caption": "Paper futures and options, grouped by symbol.",
+    "size": {
+      "width": 800,
+      "height": 1378
+    }
+  },
+  {
+    "file": "settings.png",
+    "caption": "Menu-bar display preferences and Dailystocker connection form.",
+    "size": {
+      "width": 800,
+      "height": 1444
+    }
+  },
+  {
+    "file": "scroll-settings.png",
+    "caption": "Scrolling exposes width, speed, and direction settings.",
+    "size": {
+      "width": 800,
+      "height": 1682
+    }
+  },
+  {
+    "file": "rotation-settings.png",
+    "caption": "Ticker rotation and its interval selector.",
+    "size": {
+      "width": 800,
+      "height": 1526
+    }
+  }
+]

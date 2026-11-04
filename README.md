@@ -6,6 +6,40 @@ Quotes come from Yahoo Finance’s public chart API. No Yahoo key is required.
 
 Tickr is an Electron + TypeScript app at the repo root. The original Swift menu-bar app is still in [`menubar/`](menubar/) for reference; it is no longer the install path.
 
+
+## Screenshots
+
+Screenshots of the current Electron interface on macOS, using fictional projects, accounts, jobs, and values. No personal data or live credentials are used.
+
+<a href="docs/screenshots/stocks.png"><img src="docs/screenshots/stocks.png" alt="Tickr main view with sample data" width="460" /></a>
+
+The gallery includes detail views, settings, and available actions. Click an image for the full-resolution capture.
+
+<details>
+<summary>View all 8 screenshots</summary>
+
+| Menu Bar | Stocks |
+| --- | --- |
+| <a href="docs/screenshots/menu-bar.png"><img src="docs/screenshots/menu-bar.png" alt="Actual menu-bar renderer with synthetic values, arranged on a presentation backdrop." width="360" /></a><br>Actual menu-bar renderer with synthetic values, arranged on a presentation backdrop. | <a href="docs/screenshots/stocks.png"><img src="docs/screenshots/stocks.png" alt="Watchlist with example prices and positive and negative daily changes." width="360" /></a><br>Watchlist with example prices and positive and negative daily changes. |
+
+| Stock Details | Remove Confirmation |
+| --- | --- |
+| <a href="docs/screenshots/stock-details.png"><img src="docs/screenshots/stock-details.png" alt="Expanded stock with the session sparkline and quote details." width="360" /></a><br>Expanded stock with the session sparkline and quote details. | <a href="docs/screenshots/remove-confirmation.png"><img src="docs/screenshots/remove-confirmation.png" alt="Removing a stock asks for confirmation." width="360" /></a><br>Removing a stock asks for confirmation. |
+
+| Positions | Settings |
+| --- | --- |
+| <a href="docs/screenshots/positions.png"><img src="docs/screenshots/positions.png" alt="Paper futures and options, grouped by symbol." width="360" /></a><br>Paper futures and options, grouped by symbol. | <a href="docs/screenshots/settings.png"><img src="docs/screenshots/settings.png" alt="Menu-bar display preferences and Dailystocker connection form." width="360" /></a><br>Menu-bar display preferences and Dailystocker connection form. |
+
+| Scroll Settings | Rotation Settings |
+| --- | --- |
+| <a href="docs/screenshots/scroll-settings.png"><img src="docs/screenshots/scroll-settings.png" alt="Scrolling exposes width, speed, and direction settings." width="360" /></a><br>Scrolling exposes width, speed, and direction settings. | <a href="docs/screenshots/rotation-settings.png"><img src="docs/screenshots/rotation-settings.png" alt="Ticker rotation and its interval selector." width="360" /></a><br>Ticker rotation and its interval selector. |
+
+</details>
+
+The menu-bar sheet uses the app’s actual drawing code with sample values, arranged on a neutral backdrop. It is not a capture of a personal desktop.
+
+[How these screenshots are made](docs/screenshots/README.md)
+
 ---
 
 ## Requirements
