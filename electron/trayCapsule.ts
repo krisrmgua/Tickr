@@ -44,8 +44,8 @@ export interface ScrollStrip {
   key: string;
 }
 
-/** Swift marquee loop padding between strip copies. */
-export const SCROLL_LOOP_GAP = 36;
+/** Space between the end of the strip and the next loop copy. 0 = seamless. */
+export const SCROLL_LOOP_GAP = 0;
 
 function roundRect(
   ctx: SKRSContext2D,
@@ -239,8 +239,10 @@ export async function buildScrollStrip(
   return { image, width: contentW, height: ROW_HEIGHT, key };
 }
 
-export function scrollLoopPeriod(stripWidth: number, viewportWidth: number): number {
-  return Math.max(stripWidth + SCROLL_LOOP_GAP, viewportWidth + 1);
+export function scrollLoopPeriod(stripWidth: number, _viewportWidth?: number): number {
+  // Period is the strip only — do not pad out to the viewport or the join
+  // shows a long empty stretch before the next logos.
+  return Math.max(stripWidth + SCROLL_LOOP_GAP, 1);
 }
 
 /**
