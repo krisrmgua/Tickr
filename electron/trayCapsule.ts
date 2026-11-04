@@ -4,9 +4,10 @@ import { COLORS } from "./trayIcon";
 import { logoPath } from "./logos";
 import type { BarEntry, Cell, Direction } from "./core/ticker";
 
-/** Swift `applyBarBackground`: black @ 0.55, cornerRadius 5. */
+/** Swift `applyBarBackground`: black @ 0.55. Stack radius matches TokenPulse (6). */
 const CAPSULE = "rgba(0, 0, 0, 0.55)";
-const RADIUS = 5;
+const RADIUS_ROW = 5;
+const RADIUS_STACK = 6;
 const SCALE = 2;
 
 const ROW_HEIGHT = 22;
@@ -16,14 +17,15 @@ const ROW_FONT =
   '500 12px ".AppleSystemUIFontMonospacedDigit", "SF Pro Text", Menlo, monospace';
 const ROW_GAP = 10;
 
-const STACK_HEIGHT = 24;
-const STACK_PAD_X = 5;
-const STACK_PAD_Y = 2.5;
-const STACK_ROW = 9.5;
-const STACK_LOGO = 9;
-const STACK_GAP = 8;
+/** Match TokenPulse stacked chrome (28pt) so neighbors share a visual scale. */
+const STACK_HEIGHT = 28;
+const STACK_PAD_X = 7;
+const STACK_PAD_Y = 2;
+const STACK_ROW = 12;
+const STACK_LOGO = 12;
+const STACK_GAP = 10;
 const STACK_FONT =
-  '600 9.5px ".AppleSystemUIFontMonospacedDigit", "SF Pro Text", Menlo, monospace';
+  '600 12px ".AppleSystemUIFontMonospacedDigit", "SF Pro Text", Menlo, monospace';
 
 const logoCache = new Map<string, Image | null>();
 
@@ -241,7 +243,7 @@ export async function trayCapsuleImage(opts: CapsuleOpts): Promise<NativeImage> 
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
 
-  roundRect(ctx, 0, 0, width, height, RADIUS);
+  roundRect(ctx, 0, 0, width, height, stacked ? RADIUS_STACK : RADIUS_ROW);
   ctx.fillStyle = CAPSULE;
   ctx.fill();
 
