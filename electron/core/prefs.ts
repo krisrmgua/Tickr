@@ -51,6 +51,13 @@ export function normalizeSymbol(raw: string): string {
   return raw.trim().toUpperCase().replace(/[^A-Z0-9.\-^]/g, "");
 }
 
+/** Yahoo Finance news page for one symbol, or null when the symbol is empty. */
+export function yahooNewsURL(raw: string): string | null {
+  const symbol = normalizeSymbol(raw);
+  if (!symbol) return null;
+  return `https://finance.yahoo.com/quote/${encodeURIComponent(symbol)}/news/`;
+}
+
 /** Normalized, order-preserving, de-duplicated. Empty falls back to SOFI. */
 export function cleanSymbols(raw: unknown): string[] {
   const list = Array.isArray(raw) ? raw : [];

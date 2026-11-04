@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld("tickr", {
   getState: () => ipcRenderer.invoke("tickr:getState"),
   addSymbol: (symbol: string) => ipcRenderer.invoke("tickr:addSymbol", symbol),
   removeSymbol: (symbol: string) => ipcRenderer.invoke("tickr:removeSymbol", symbol),
+  openNews: (symbol: string) => ipcRenderer.invoke("tickr:openNews", symbol),
   refresh: () => ipcRenderer.invoke("tickr:refresh"),
   setPrefs: (patch: unknown) => ipcRenderer.invoke("tickr:setPrefs", patch),
   saveDailystocker: (input: unknown) => ipcRenderer.invoke("tickr:saveDailystocker", input),
