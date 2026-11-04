@@ -7,6 +7,16 @@ Quotes come from Yahoo Finance’s public chart API. No Yahoo key is required.
 Tickr is an Electron + TypeScript app at the repo root. The original Swift menu-bar app is still in [`menubar/`](menubar/) for reference; it is no longer the install path.
 
 
+## Menu-bar previews
+
+Company-logo and fallback icons, inline prices, stacked prices, rotation and scrolling frames, and color/symbol choices. Prices are fictional.
+
+<a href="docs/screenshots/menu-bar.png"><img src="docs/screenshots/menu-bar.png" alt="Company-logo and fallback icons, inline prices, stacked prices, rotation and scrolling frames, and color/symbol choices. Prices are fictional." width="540" /></a>
+
+The labeled sheets enlarge the app’s actual rendered artwork 2× for detail. The neutral backdrops are presentation surfaces, not captures of a personal desktop.
+
+[Full menu-bar gallery and regeneration instructions](docs/menu-bar.md)
+
 ## Screenshots
 
 Screenshots of the current Electron interface on macOS, using fictional projects, accounts, jobs, and values. No personal data or live credentials are used.
@@ -16,7 +26,7 @@ Screenshots of the current Electron interface on macOS, using fictional projects
 The gallery includes detail views, settings, and available actions. Click an image for the full-resolution capture.
 
 <details>
-<summary>View all 8 screenshots</summary>
+<summary>View dashboard screenshots</summary>
 
 | Menu Bar | Stocks |
 | --- | --- |
