@@ -40,21 +40,43 @@
         <section id="view-settings" class="view">
           <div class="card settings">
             <h3 id="bar-heading">Menu bar</h3>
-            <label class="row"><input type="checkbox" id="p-rotate" /> Rotate one at a time</label>
+            <label class="switch-row">
+              <span>Rotate one at a time</span>
+              <input type="checkbox" class="switch" id="p-rotate" />
+            </label>
             <label class="field indent" id="row-rotate-interval">
               Rotate every
               <select id="p-rotate-interval"></select>
             </label>
-            <label class="row"><input type="checkbox" id="p-stack" /> Stack two tickers</label>
-            <label class="row mac-only"><input type="checkbox" id="p-scroll" /> Scroll tickers</label>
+            <label class="switch-row mac-only" id="row-stack">
+              <span>Stack two tickers</span>
+              <input type="checkbox" class="switch" id="p-stack" />
+            </label>
+            <label class="switch-row mac-only">
+              <span>Scroll tickers</span>
+              <input type="checkbox" class="switch" id="p-scroll" />
+            </label>
             <div id="scroll-opts" class="indent mac-only">
               <label class="field">Scroll width <select id="p-scroll-width"></select></label>
               <label class="field">Scroll speed <select id="p-scroll-speed"></select></label>
               <label class="field">Scroll direction <select id="p-scroll-direction"></select></label>
             </div>
-            <label class="row"><input type="checkbox" id="p-pastel" /> Pastel colors</label>
-            <label class="row mac-only"><input type="checkbox" id="p-color-title" /> Color the menu-bar price</label>
-            <label class="row"><input type="checkbox" id="p-login" /> Open at login</label>
+            <label class="switch-row mac-only">
+              <span>Show ticker symbol</span>
+              <input type="checkbox" class="switch" id="p-show-symbol" />
+            </label>
+            <label class="switch-row">
+              <span>Pastel colors</span>
+              <input type="checkbox" class="switch" id="p-pastel" />
+            </label>
+            <label class="switch-row mac-only">
+              <span>Color the menu-bar price</span>
+              <input type="checkbox" class="switch" id="p-color-title" />
+            </label>
+            <label class="switch-row">
+              <span>Open at login</span>
+              <input type="checkbox" class="switch" id="p-login" />
+            </label>
             <p class="note" id="bar-note"></p>
           </div>
 

@@ -24,6 +24,8 @@ export interface Prefs {
   pastelBarColors: boolean;
   /** macOS tray title in green/red ANSI color. Electron only. */
   colorTrayTitle: boolean;
+  /** After the logo: `ADBE $246.14` instead of just `$246.14`. Electron only. */
+  showTickerSymbol: boolean;
   dailystockerBaseURL: string;
   dailystockerMode: DailystockerMode;
 }
@@ -39,6 +41,7 @@ export const DEFAULT_PREFS: Prefs = {
   scrollDirection: "rightToLeft",
   pastelBarColors: true,
   colorTrayTitle: true,
+  showTickerSymbol: false,
   dailystockerBaseURL: "",
   dailystockerMode: "live",
 };
@@ -96,6 +99,7 @@ export function sanitizePrefs(raw: unknown): Prefs {
     ),
     pastelBarColors: bool("pastelBarColors"),
     colorTrayTitle: bool("colorTrayTitle"),
+    showTickerSymbol: bool("showTickerSymbol"),
     dailystockerBaseURL:
       typeof r.dailystockerBaseURL === "string" ? r.dailystockerBaseURL.trim() : "",
     dailystockerMode: r.dailystockerMode === "paper" ? "paper" : "live",

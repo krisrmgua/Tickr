@@ -60,6 +60,7 @@ const DISPLAY_KEYS = [
   "scrollDirection",
   "pastelBarColors",
   "colorTrayTitle",
+  "showTickerSymbol",
 ] as const satisfies readonly (keyof Prefs)[];
 
 let tray: Tray | null = null;
@@ -223,9 +224,19 @@ async function paintTray(): Promise<void> {
   // macOS scroll: rebuild strip when content changes, then composite sync frames.
   if (p.scrollTickers) {
     const scrollEntries = entriesFor(symbols, quotes);
-    const key = scrollStripKey(scrollEntries, p.pastelBarColors, p.colorTrayTitle);
+    const key = scrollStripKey(
+      scrollEntries,
+      p.pastelBarColors,
+      p.colorTrayTitle,
+      p.showTickerSymbol,
+    );
     if (!scrollStrip || scrollStrip.key !== key) {
-      const next = await buildScrollStrip(scrollEntries, p.pastelBarColors, p.colorTrayTitle);
+      const next = await buildScrollStrip(
+        scrollEntries,
+        p.pastelBarColors,
+        p.colorTrayTitle,
+        p.showTickerSymbol,
+      );
       if (gen !== trayGen || !tray) return;
       scrollStrip = next;
     }
@@ -239,6 +250,7 @@ async function paintTray(): Promise<void> {
     stacked: p.stackTwoTickers,
     pastel: p.pastelBarColors,
     color: p.colorTrayTitle,
+    showSymbol: p.showTickerSymbol,
   });
   if (gen !== trayGen || !tray) return;
   tray.setImage(image);

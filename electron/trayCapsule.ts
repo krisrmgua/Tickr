@@ -34,6 +34,14 @@ export interface CapsuleOpts {
   stacked: boolean;
   pastel: boolean;
   color: boolean;
+  /** When a logo is present, paint `ADBE $246.14` instead of just the price. */
+  showSymbol: boolean;
+}
+
+function priceLabel(entry: BarEntry, showSymbol: boolean, hasLogo: boolean): string {
+  // No logo → always include the symbol. With a logo, optional `ADBE $246.14`.
+  if (!hasLogo || showSymbol) return `${entry.symbol} ${entry.priceText}`;
+  return entry.priceText;
 }
 
 /** Pre-rendered marquee strip (logos + prices, no capsule). Composited each frame. */
@@ -106,17 +114,19 @@ function drawBandText(
   return Math.ceil(m.width);
 }
 
-async function measureRow(ctx: SKRSContext2D, entries: BarEntry[]): Promise<number> {
+async function measureRow(
+  ctx: SKRSContext2D,
+  entries: BarEntry[],
+  showSymbol: boolean,
+): Promise<number> {
   ctx.font = ROW_FONT;
   let x = ROW_PAD_X;
   for (let i = 0; i < entries.length; i++) {
     if (i > 0) x += ROW_GAP;
     const e = entries[i];
-    if (await logo(e.symbol)) {
-      x += ROW_LOGO + 4 + Math.ceil(ctx.measureText(e.priceText).width);
-    } else {
-      x += Math.ceil(ctx.measureText(`${e.symbol} ${e.priceText}`).width);
-    }
+    const hasLogo = Boolean(await logo(e.symbol));
+    if (hasLogo) x += ROW_LOGO + 4;
+    x += Math.ceil(ctx.measureText(priceLabel(e, showSymbol, hasLogo)).width);
   }
   return x + ROW_PAD_X;
 }
@@ -126,6 +136,7 @@ async function paintRow(
   entries: BarEntry[],
   pastel: boolean,
   color: boolean,
+  showSymbol: boolean,
 ): Promise<void> {
   ctx.font = ROW_FONT;
   let x = ROW_PAD_X;
@@ -134,29 +145,28 @@ async function paintRow(
     const e = entries[i];
     const c = ink(e.direction, pastel, color);
     const img = await logo(e.symbol);
+    const hasLogo = Boolean(img);
     if (img) {
       ctx.drawImage(img, x, (ROW_HEIGHT - ROW_LOGO) / 2, ROW_LOGO, ROW_LOGO);
       x += ROW_LOGO + 4;
-      x += drawBandText(ctx, e.priceText, x, 0, ROW_HEIGHT, c);
-    } else {
-      x += drawBandText(ctx, `${e.symbol} ${e.priceText}`, x, 0, ROW_HEIGHT, c);
     }
+    x += drawBandText(ctx, priceLabel(e, showSymbol, hasLogo), x, 0, ROW_HEIGHT, c);
   }
 }
 
 async function columnWidths(
   ctx: SKRSContext2D,
   columns: BarEntry[][],
+  showSymbol: boolean,
 ): Promise<number[]> {
   ctx.font = STACK_FONT;
   const widths: number[] = [];
   for (const col of columns) {
     let w = 36;
     for (const e of col) {
-      const priceW = Math.ceil(ctx.measureText(e.priceText).width);
-      const row = (await logo(e.symbol))
-        ? STACK_LOGO + 3 + priceW
-        : Math.ceil(ctx.measureText(e.symbol).width) + 3 + priceW;
+      const hasLogo = Boolean(await logo(e.symbol));
+      const textW = Math.ceil(ctx.measureText(priceLabel(e, showSymbol, hasLogo)).width);
+      const row = hasLogo ? STACK_LOGO + 3 + textW : textW;
       w = Math.max(w, row);
     }
     widths.push(w);
@@ -164,10 +174,14 @@ async function columnWidths(
   return widths;
 }
 
-async function measureStack(ctx: SKRSContext2D, entries: BarEntry[]): Promise<number> {
+async function measureStack(
+  ctx: SKRSContext2D,
+  entries: BarEntry[],
+  showSymbol: boolean,
+): Promise<number> {
   const columns: BarEntry[][] = [];
   for (let i = 0; i < entries.length; i += 2) columns.push(entries.slice(i, i + 2));
-  const widths = await columnWidths(ctx, columns);
+  const widths = await columnWidths(ctx, columns, showSymbol);
   return Math.max(
     40,
     STACK_PAD_X * 2 + widths.reduce((a, b) => a + b, 0) + Math.max(0, columns.length - 1) * STACK_GAP,
@@ -179,11 +193,12 @@ async function paintStack(
   entries: BarEntry[],
   pastel: boolean,
   color: boolean,
+  showSymbol: boolean,
 ): Promise<void> {
   ctx.font = STACK_FONT;
   const columns: BarEntry[][] = [];
   for (let i = 0; i < entries.length; i += 2) columns.push(entries.slice(i, i + 2));
-  const widths = await columnWidths(ctx, columns);
+  const widths = await columnWidths(ctx, columns, showSymbol);
 
   let originX = STACK_PAD_X;
   for (let c = 0; c < columns.length; c++) {
@@ -193,13 +208,12 @@ async function paintStack(
       let x = originX;
       const colorInk = ink(e.direction, pastel, color);
       const img = await logo(e.symbol);
+      const hasLogo = Boolean(img);
       if (img) {
         ctx.drawImage(img, x, rowTop + (STACK_ROW - STACK_LOGO) / 2, STACK_LOGO, STACK_LOGO);
         x += STACK_LOGO + 3;
-      } else {
-        x += drawBandText(ctx, e.symbol, x, rowTop, STACK_ROW, colorInk) + 3;
       }
-      drawBandText(ctx, e.priceText, x, rowTop, STACK_ROW, colorInk);
+      drawBandText(ctx, priceLabel(e, showSymbol, hasLogo), x, rowTop, STACK_ROW, colorInk);
     }
     originX += widths[c] + STACK_GAP;
   }
@@ -209,10 +223,12 @@ export function scrollStripKey(
   entries: BarEntry[],
   pastel: boolean,
   color: boolean,
+  showSymbol: boolean,
 ): string {
   return JSON.stringify({
     pastel,
     color,
+    showSymbol,
     e: entries.map((x) => [x.symbol, x.priceText, x.direction]),
   });
 }
@@ -225,16 +241,17 @@ export async function buildScrollStrip(
   entries: BarEntry[],
   pastel: boolean,
   color: boolean,
+  showSymbol: boolean,
 ): Promise<ScrollStrip> {
-  const key = scrollStripKey(entries, pastel, color);
+  const key = scrollStripKey(entries, pastel, color, showSymbol);
   const measure = createCanvas(4, 4).getContext("2d");
-  const contentW = Math.max(36, await measureRow(measure, entries));
+  const contentW = Math.max(36, await measureRow(measure, entries, showSymbol));
   const canvas = createCanvas(Math.ceil(contentW * SCALE), Math.ceil(ROW_HEIGHT * SCALE));
   const ctx = canvas.getContext("2d");
   ctx.scale(SCALE, SCALE);
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
-  await paintRow(ctx, entries, pastel, color);
+  await paintRow(ctx, entries, pastel, color, showSymbol);
   const image = await loadImage(canvas.toBuffer("image/png"));
   return { image, width: contentW, height: ROW_HEIGHT, key };
 }
@@ -298,8 +315,8 @@ export async function trayCapsuleImage(opts: CapsuleOpts): Promise<NativeImage> 
 
   const measure = createCanvas(4, 4).getContext("2d");
   let width = stacked
-    ? await measureStack(measure, opts.entries)
-    : await measureRow(measure, opts.entries);
+    ? await measureStack(measure, opts.entries, opts.showSymbol)
+    : await measureRow(measure, opts.entries, opts.showSymbol);
   width = Math.max(36, Math.ceil(width));
 
   const canvas = createCanvas(Math.ceil(width * SCALE), Math.ceil(height * SCALE));
@@ -312,8 +329,8 @@ export async function trayCapsuleImage(opts: CapsuleOpts): Promise<NativeImage> 
   ctx.fillStyle = CAPSULE;
   ctx.fill();
 
-  if (stacked) await paintStack(ctx, opts.entries, opts.pastel, opts.color);
-  else await paintRow(ctx, opts.entries, opts.pastel, opts.color);
+  if (stacked) await paintStack(ctx, opts.entries, opts.pastel, opts.color, opts.showSymbol);
+  else await paintRow(ctx, opts.entries, opts.pastel, opts.color, opts.showSymbol);
 
   return nativeImage.createFromBuffer(canvas.toBuffer("image/png"), {
     scaleFactor: SCALE,
