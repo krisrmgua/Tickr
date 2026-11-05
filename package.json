@@ -14,7 +14,7 @@
     "build": "npm run build:ui && npm run build:electron",
     "check": "npm run build:electron && node dist-electron/selfCheck.js",
     "start": "npm run build && electron .",
-    "dev": "npm run build:electron && concurrently -k \"vite\" \"wait-on http://127.0.0.1:5174 && TICKR_DEV=1 electron .\"",
+    "dev": "npm run build:electron && concurrently -k \"vite\" \"wait-on http://127.0.0.1:5174 && TICKR_DEV=1 TICKR_DEV_SERVER=http://127.0.0.1:5174 electron .\"",
     "pack:mac": "npm run build && electron-builder --mac",
     "pack:win": "npm run build && electron-builder --win",
     "pack": "npm run build && electron-builder --mac --win"
