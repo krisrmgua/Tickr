@@ -19,14 +19,14 @@ The labeled sheets enlarge the app’s actual rendered artwork 2× for detail. T
 
 ## Screenshots
 
-Screenshots of the current Electron interface on macOS, using fictional projects, accounts, jobs, and values. No personal data or live credentials are used.
+Screenshots of the current Electron interface on macOS, using a fictional watchlist and sample prices. No personal data or live credentials are used.
 
 <a href="docs/screenshots/stocks.png"><img src="docs/screenshots/stocks.png" alt="Tickr main view with sample data" width="460" /></a>
 
 The gallery includes detail views, settings, and available actions. Click an image for the full-resolution capture.
 
 <details>
-<summary>View dashboard screenshots</summary>
+<summary>View panel screenshots</summary>
 
 | Menu Bar | Stocks |
 | --- | --- |
