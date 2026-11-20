@@ -1,10 +1,10 @@
 # Screenshot gallery
 
-Screenshots of the current Electron interface on macOS, using fictional projects, accounts, jobs, and values. No personal data or live credentials are used.
+Screenshots of the current Electron interface on macOS, using a fictional watchlist and sample prices. No personal data or live credentials are used.
 
-These are captures of `dist/index.html` built from the repository’s actual `src/ui` code. The layout, typography, colors, controls, and dialogs come from the app. A separate Electron entry point supplies synthetic state through a mock preload bridge; it never starts the production main process. Network requests are blocked, and application data goes to a temporary directory. Actions such as run, delete, merge, refresh, and save are inert.
+These are captures of `dist/index.html` built from the repository’s actual `src/ui` code. The layout, typography, colors, controls, and dialogs come from the app. A separate Electron entry point supplies synthetic state through a mock preload bridge; it never starts the production main process. Network requests are blocked, and application data goes to a temporary directory. The mock implements the Tickr bridge (`getState`, `setPrefs`, `fitHeight`, and the other methods in `electron/preload.ts`). Add, remove, refresh, news, and quit do not call Yahoo or the production main process.
 
-No installed app, sign-in, API key, real repository scan, market-data request, or scheduled command is needed. Example stock prices are illustrative. There are no AI-generated interface images.
+No installed app, sign-in, or live market-data request is needed. Example stock prices are illustrative. There are no AI-generated interface images.
 
 Captured from version **0.3.7**, source revision `7d6026d`.
 
